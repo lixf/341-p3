@@ -63,19 +63,20 @@ module piso_shiftreg
   logic [WIDTH-1:0] Q, outreg_D, outreg_load;
   register #(WIDTH) out_reg(.D(outreg_D), .ld_reg(outreg_load), .*);
 
-  assign outb = Q[0];
+  assign outb = Q[0],
+         outreg_load = 1;
 
   always_comb begin
-    outreg_load = 1;
     if (ld_reg)
       outreg_D = D;
     else if (~en)
       outreg_D = Q;
     else
-      outreg_D = {0'b0, Q[WIDTH:1]};
+      outreg_D = {0'b0, Q[WIDTH-1:1]};
   end
 
 endmodule 
+
 
 module shift_reg
 #(parameter WIDTH = 32)
@@ -104,7 +105,53 @@ module shift_reg
 
 endmodule
 
+module test_shift_piso;
 
+  logic clk, rst_b, ld_reg, clr_reg, en, outb;
+  logic[4:0] D;
+  
+  piso_shiftreg#(5) dut(.*);
+  
+  initial begin
+    clk = 0;
+    rst_b <= 0;
+    #2 rst_b <= 1;
+    forever #5 clk = ~clk;
+  end
+  
+  //use clocking
+  default clocking myDelay
+    @(posedge clk);
+  endclocking 
+
+  initial begin
+    $monitor($time," D: %b, internal:%b, out: %b, enable: %b, ld: %b, clr: %b",D,dut.Q,outb,en,ld_reg,clr_reg);
+    D <= 5'b11111;
+    en <=1;
+    ld_reg <= 1;
+    clr_reg <= 0;
+    ##1;
+    ld_reg <= 0;
+    ##5;
+    D <= 5'b01010;
+    ld_reg <= 0;
+    clr_reg <= 1;
+    ##1;
+    clr_reg <= 0;
+    ##2;
+    D <= 5'b11000;
+    ld_reg <= 1;
+    ##3;
+    D <= 5'b11100;
+    ##2;
+    en <= 0;
+    ##5;
+    en <=1;
+    ##5;
+    $finish;
+  end
+endmodule 
+/*
 module test_shift;
 
   logic clk, rst_b, inb, outb, enable;
@@ -143,4 +190,4 @@ module test_shift;
   end
 endmodule 
 
-
+*/
