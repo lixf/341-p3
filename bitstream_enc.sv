@@ -11,39 +11,40 @@ module bitstream_encoder
  input logic [3:0] pid, [6:0] addr, [63:0] data, [3:0] endp,
  output logic outb, sending, gotpkt);
 
-  enum logic {IDLE, LOAD, 
+  enum logic [2:0] {IDLE, LOAD, 
               SEND_PID, SEND_ADDR, SEND_DATA, SEND_ENDP} state, nextState;
   logic loadpkt;
   logic pid_outb, addr_outb, data_outb, endp_outb;
   logic shift_pid, shift_addr, shift_data, shift_endp;
-  logic [7:0] curcount;
+  logic [7:0] curcount,counter_init,ldcounter;
+  logic downcount;
 
-  enum logic [3:0] {OUT = 0'b0001, IN = 0'b1001, DATA0 = 0'b0011,
-                    ACK = 0'b0010, NAK = 0'b1010} current_pid;
+  enum logic [3:0] {OUT = 4'b0001, IN = 4'b1001, DATA0 = 4'b0011,
+                    ACK = 4'b0010, NAK = 4'b1010} current_pid;
 
   /* Keep the PID packet around so we can remember which fields to send after
    * it's been shifted out (i.e. we need to know whether there's a valid data
    * packet after the PID field) */
   register #(4) saved_pid(.rst_b(rst_L), .D(pid), .Q(current_pid),
-                          .ld_reg(loadpkt), .clr_reg(0), .*);
+                          .ld_reg(loadpkt), .clr_reg(1'b0), .*);
 
   piso_shiftreg #(8) pid_reg(.rst_b(rst_L), .D({~pid, pid}), .outb(pid_outb),
-                             .ld_reg(loadpkt), .clr_reg(0), .en(shift_pid), .*);
+                             .ld_reg(loadpkt), .clr_reg(1'b0), .en(shift_pid), .*);
 
   piso_shiftreg #(7) addr_reg(.rst_b(rst_L), .D(addr), .outb(addr_outb),
-                             .ld_reg(loadpkt), .clr_reg(0), .en(shift_addr), .*);
+                             .ld_reg(loadpkt), .clr_reg(1'b0), .en(shift_addr), .*);
 
   piso_shiftreg #(64) data_reg(.rst_b(rst_L), .D(data), .outb(data_outb),
-                             .ld_reg(loadpkt), .clr_reg(0), .en(shift_data), .*);
+                             .ld_reg(loadpkt), .clr_reg(1'b0), .en(shift_data), .*);
 
   piso_shiftreg #(4) endp_reg(.rst_b(rst_L), .D(endp), .outb(endp_outb),
-                             .ld_reg(loadpkt), .clr_reg(0), .en(shift_endp), .*);
+                             .ld_reg(loadpkt), .clr_reg(1'b0), .en(shift_endp), .*);
 
   /* down-counter - set to number of bytes in each field when we start
    * reading the field out, then shift and read its outb until it hits 0, then
    * either stop or move onto the next field as necessary. */
-  counter #(8) field_remaining(.inc_cnt(downcount), .clr_cnt(0), .up(0),
-                               .cnt(curcount), .*);
+  counter #(8) field_remaining(.inc_cnt(downcount), .clr_cnt(1'b0), .up(1'b0),
+                               .cnt(curcount),.rst_b(rst_L),.*);
 
   always_ff @(posedge clk, negedge rst_L)
   if (~rst_L)
@@ -69,7 +70,7 @@ module bitstream_encoder
     ldcounter = 0;
     downcount = 0;
 
-    case (state):
+    case (state)
       IDLE: begin
         if (pktready)
           nextState = LOAD;
@@ -77,7 +78,7 @@ module bitstream_encoder
       LOAD: begin
         loadpkt = 1;
         gotpkt = 1;
-        counter_init = 0'd8; // # pid bits
+        counter_init = 8'd8; // # pid bits
         ldcounter = 1;
         nextState = SEND_PID;
       end
@@ -94,10 +95,10 @@ module bitstream_encoder
           if (current_pid == ACK || current_pid == NAK) begin
             nextState = IDLE;
           end else if (current_pid == OUT || current_pid == IN) begin
-            counter_init = 0'd7; // # addr bits
+            counter_init = 8'd7; // # addr bits
             nextState = SEND_ADDR;
           end else begin
-            counter_init = 0'd64; // # data bits
+            counter_init = 8'd64; // # data bits
             nextState = SEND_DATA;
           end
         end
@@ -110,7 +111,7 @@ module bitstream_encoder
           downcount = 1;
         end
         if (curcount == 0) begin
-          counter_init = 0'd4 // # endp bits
+          counter_init = 8'd4; // # endp bits
           nextState = SEND_ENDP;
         end
       end
@@ -139,5 +140,50 @@ module bitstream_encoder
     endcase
 
   end
-
 endmodule: bitstream_encoder
+
+
+
+module test_bitstream;
+  logic clk, rst_L, pause, pktready;
+  logic outb, sending, gotpkt;
+  logic[3:0] pid, endp;
+  logic[6:0] addr;
+  logic[63:0] data;
+
+  
+  bitstream_encoder dut(.*);
+  
+  initial begin
+    clk = 0;
+    rst_L <= 0;
+    #2 rst_L <= 1;
+    forever #5 clk = ~clk;
+  end
+  
+  //use clocking
+  default clocking myDelay
+    @(posedge clk);
+  endclocking 
+
+  initial begin
+    $monitor($time," pid: %b addr: %b outb: %b sending: %b gotpkt %b",pid,addr,outb,sending,gotpkt);
+    pid <= 4'b0001;
+    addr <= 7'b1101101;
+    endp <= 4'b1101;
+    ##5;
+    pid <= 4'b1001;
+    addr <= 7'b0101101;
+    endp <= 4'b1001;
+    ##5;
+    pid <= 4'b0001;
+    addr <= 7'b1111101;
+    endp <= 4'b1100;
+    ##5;
+    ##5;
+    $finish;
+  end
+endmodule 
+
+
+

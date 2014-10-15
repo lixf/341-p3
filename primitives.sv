@@ -32,7 +32,7 @@ module counter
   logic ld_reg, clr_reg;
   logic [WIDTH-1:0] in_reg,out_reg;
 
-  register r_in_cnt(.D(in_reg),.Q(out_reg),.*);
+  register #(WIDTH) r_in_cnt(.D(in_reg),.Q(out_reg),.*);
   
   assign cnt = out_reg;
 
@@ -60,7 +60,8 @@ module piso_shiftreg
  input logic ld_reg, clr_reg, en,
  output logic outb);
 
-  logic [WIDTH-1:0] Q, outreg_D, outreg_load;
+  logic [WIDTH-1:0] Q, outreg_D;
+  logic outreg_load;
   register #(WIDTH) out_reg(.D(outreg_D), .ld_reg(outreg_load), .*);
 
   assign outb = Q[0],
@@ -95,11 +96,11 @@ module shift_reg
   generate
     for (i=0;i<WIDTH;i++) begin: REGS
       if (i == 0)
-        register R (.D(inb),.Q(out_reg[i+1]),.ld_reg(enable),.clr_reg(0),.*);
+        register #(1) R (.D(inb),.Q(out_reg[i+1]),.ld_reg(enable),.clr_reg(1'b0),.*);
       else if (i == (WIDTH-1))
-        register R (.D(out_reg[i]),.Q(outb),.ld_reg(enable),.clr_reg(0),.*);
+        register #(1) R (.D(out_reg[i]),.Q(outb),.ld_reg(enable),.clr_reg(1'b0),.*);
       else
-        register R (.D(out_reg[i]),.Q(out_reg[i+1]),.ld_reg(enable),.clr_reg(0),.*);
+        register #(1) R (.D(out_reg[i]),.Q(out_reg[i+1]),.ld_reg(enable),.clr_reg(1'b0),.*);
     end
   endgenerate
 
