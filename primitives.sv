@@ -73,36 +73,31 @@ module piso_shiftreg
     else if (~en)
       outreg_D = Q;
     else
-      outreg_D = {0'b0, Q[WIDTH-1:1]};
+      outreg_D = {1'b0, Q[WIDTH-1:1]};
   end
 
 endmodule 
 
 
-module shift_reg
+module crc_shiftreg
 #(parameter WIDTH = 32)
 (input logic clk, rst_b,
- input logic inb,
- input logic enable,
- output logic outb, // one-bit-at-a-time output
- output logic [WIDTH-1:0] out_full); // the entire contents of the register
+ input logic clr, // clr initializes the bits to 1
+ input logic shift, inb,
+ output logic outb, // the output bit
+ output logic [WIDTH-1:0] Q); // the entire contents of the register
 
-  logic[WIDTH-1:0] out_reg;
-
-  assign out_full = out_reg;
-
-  //use generate to get a bunch of shift registers
-  genvar i;
-  generate
-    for (i=0;i<WIDTH;i++) begin: REGS
-      if (i == 0)
-        register #(1) R (.D(inb),.Q(out_reg[i+1]),.ld_reg(enable),.clr_reg(1'b0),.*);
-      else if (i == (WIDTH-1))
-        register #(1) R (.D(out_reg[i]),.Q(outb),.ld_reg(enable),.clr_reg(1'b0),.*);
-      else
-        register #(1) R (.D(out_reg[i]),.Q(out_reg[i+1]),.ld_reg(enable),.clr_reg(1'b0),.*);
-    end
-  endgenerate
+  always_ff @(posedge clk, negedge rst_b)
+  if (~rst_b)
+    Q <= 0;
+  else if (clr)
+    Q <= ~0;
+  else if (shift)
+    Q <= {inb, Q[WIDTH-1:1]};
+  else
+    Q <= Q;
+  
+  assign outb = Q[0];
 
 endmodule
 

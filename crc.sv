@@ -22,22 +22,20 @@ module crc
   logic [3:0] curcount;
   logic clear_count, inc_count;
 
-  /* TODO these need to reset to 1 each time we calculate a new crc */
-  shift_reg #(2) crc5_x2(.out_full(crc_save[1:0]), .inb(crc_x2_inb), .outb(crc_x2_outb),
-                         .enable(shift_crc), .rst_b(reset_crc), .*);
+  crc_shiftreg #(2) crc5_x2(.Q(crc_save[1:0]), .inb(crc_x2_inb), .outb(crc_x2_outb),
+                         .shift(shift_crc), .clr(init_crc), .rst_b(rst_L), .*);
 
-  shift_reg #(3) crc5_x5(.out_full(crc_save[4:2]), .inb(crc_x5_inb), .outb(crc_x5_outb),
-                         .enable(shift_crc), .rst_b(reset_crc), .*);
+  crc_shiftreg #(3) crc5_x5(.Q(crc_save[4:2]), .inb(crc_x5_inb), .outb(crc_x5_outb),
+                         .shift(shift_crc), .clr(init_crc), .rst_b(rst_L), .*);
   
-  piso_shiftreg #(5) storedcrc(.D(crc_save), .ld_reg(crc_done), .clr_reg(0), 
+  piso_shiftreg #(5) storedcrc(.D(crc_save), .ld_reg(crc_done), .clr_reg(1'b0), 
                                .en(state == SENDCRC), .outb(crc_outb), .rst_b(rst_L), .*);
 
-  counter #(4) outcrc_remaining(.inc_cnt(inc_count), .up(1), .cnt(curcount), 
+  counter #(4) outcrc_remaining(.inc_cnt(inc_count), .up(1'b1), .cnt(curcount), 
                                 .clr_cnt(clear_count), .rst_b(rst_L), .*);
 
   assign crc_x2_inb = crc_x5_outb ^ inb;
   assign crc_x5_inb = crc_x2_inb ^ crc_x2_outb;
-  assign reset_crc = rst_L ? ~init_crc : rst_L;
 
   always_ff @(posedge clk, negedge rst_L)
   if (~rst_L)
