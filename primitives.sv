@@ -76,6 +76,29 @@ module piso_shiftreg
 
 endmodule 
 
+module shift_reg
+#(parameter WIDTH = 32)
+(input logic clk, rst_b,
+ input logic inb,
+ input logic enable,
+ output logic outb);
+
+  logic[WIDTH-1:0] out_reg;
+
+  //use generate to get a bunch of shift registers
+  genvar i;
+  generate
+    for (i=0;i<WIDTH;i++) begin: REGS
+      if (i == 0)
+        register R (.Q(inb),.D(out_reg[i+1]),.ld_reg(enable),.clr_reg(0),.*);
+      else if (i == (WIDTH-1))
+        register R (.Q(out_reg[i]),.D(outb),.ld_reg(enable),.clr_reg(0),.*);
+      else
+        register R (.Q(out_reg[i]),.D(out_reg[i+1]),.ld_reg(enable),.clr_reg(0),.*);
+    end
+  endgenerate
+
+endmodule
 
 
 module test_shift;
