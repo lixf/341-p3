@@ -66,7 +66,7 @@ module piso_shiftreg
   assign outb = Q[0];
 
   always_comb begin
-    ld_reg = 1;
+    outreg_load = 1;
     if (ld_reg)
       outreg_D = D;
     else if (~en)
@@ -81,7 +81,7 @@ module shift_reg
 #(parameter WIDTH = 32)
 (input logic clk, rst_b,
  input logic inb,
- input logic en,
+ input logic enable,
  output logic outb, // one-bit-at-a-time output
  output logic [WIDTH-1:0] out_full); // the entire contents of the register
 
@@ -108,6 +108,7 @@ endmodule
 module test_shift;
 
   logic clk, rst_b, inb, outb, enable;
+  logic[4:0] out_full;
   
   shift_reg#(5) dut(.*);
   
@@ -124,7 +125,7 @@ module test_shift;
   endclocking 
 
   initial begin
-    $monitor($time," in: %b, out: %b, enable: %b, internal: %b",inb,outb,enable,dut.out_reg);
+    $monitor($time," in: %b, out: %b, enable: %b, internal: %b",inb,outb,enable,out_full);
     inb <= 1;
     enable <=1;
     ##3;
