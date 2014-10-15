@@ -3,7 +3,6 @@
  *  @author Xiaofan Li
  **/
 
-`include "primitives.sv"
 
 module nrzi
 (input logic clk, rst_L,
@@ -29,6 +28,12 @@ module nrzi
 endmodule /* bit_stuff */
 
 
+
+
+
+
+
+/*
 // testbench for NRZI
 module testbench;
 
@@ -67,3 +72,5 @@ module testbench;
     $finish;
   end
 endmodule
+
+*/
