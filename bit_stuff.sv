@@ -3,7 +3,6 @@
  *  @author Xiaofan Li
  **/
 
-`include "primitives.sv"
 
 module bit_stuff
 (input logic clk, rst_L,
@@ -36,7 +35,7 @@ module bit_stuff
   end
 endmodule /* bit_stuff */
 
-
+/*
 // testbench for the bit stuffer
 module testbench;
 
@@ -73,3 +72,5 @@ module testbench;
     $finish;
   end
 endmodule
+
+*/
