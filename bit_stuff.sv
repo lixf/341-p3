@@ -15,8 +15,7 @@ module bit_stuff
   logic[2:0] cnt;
   logic inc_cnt, clr_cnt;
 
-  counter#(3) cnt_to_6(.rst_b(rst_L),.*);
-
+  counter#(3) cnt_to_6(.rst_b(rst_L), .up(1), .*);
 
   assign outb = pause ? 0 : inb;
   
