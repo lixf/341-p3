@@ -13,11 +13,13 @@ module bitstream_encoder
 
   enum logic [2:0] {IDLE, LOAD, 
               SEND_PID, SEND_ADDR, SEND_DATA, SEND_ENDP} state, nextState;
+  /* shift registers */
   logic loadpkt;
   logic pid_outb, addr_outb, data_outb, endp_outb;
   logic shift_pid, shift_addr, shift_data, shift_endp;
-  logic [7:0] curcount,counter_init,ldcounter;
-  logic downcount;
+  /* counter */
+  logic [7:0] curcount;
+  logic count, clrcounter
 
   enum logic [3:0] {OUT = 4'b0001, IN = 4'b1001, DATA0 = 4'b0011,
                     ACK = 4'b0010, NAK = 4'b1010} current_pid;
@@ -43,7 +45,7 @@ module bitstream_encoder
   /* down-counter - set to number of bytes in each field when we start
    * reading the field out, then shift and read its outb until it hits 0, then
    * either stop or move onto the next field as necessary. */
-  counter #(8) field_remaining(.inc_cnt(downcount), .clr_cnt(1'b0), .up(1'b0),
+  counter #(8) field_remaining(.inc_cnt(count), .clr_cnt(clrcounter), .up(1'b1),
                                .cnt(curcount),.rst_b(rst_L),.*);
 
   always_ff @(posedge clk, negedge rst_L)
@@ -66,9 +68,8 @@ module bitstream_encoder
     sending = 0;
     gotpkt = 0;
     /* counter control */
-    counter_init = 0;
-    ldcounter = 0;
-    downcount = 0;
+    clrcounter = 0;
+    count = 0;
 
     case (state)
       IDLE: begin
@@ -78,8 +79,7 @@ module bitstream_encoder
       LOAD: begin
         loadpkt = 1;
         gotpkt = 1;
-        counter_init = 8'd8; // # pid bits
-        ldcounter = 1;
+        clrcounter = 1;
         nextState = SEND_PID;
       end
       SEND_PID: begin
@@ -87,18 +87,16 @@ module bitstream_encoder
         outb = pid_outb;
         if (~pause) begin
           shift_pid = 1;
-          downcount = 1;
+          count = 1;
         end
-        if (curcount == 0) begin
-          downcount = 0;
-          ldcounter = 1;
+        if (curcount == 8'd8) begin
+          count = 0;
+          clrcounter = 1;
           if (current_pid == ACK || current_pid == NAK) begin
             nextState = IDLE;
           end else if (current_pid == OUT || current_pid == IN) begin
-            counter_init = 8'd7; // # addr bits
             nextState = SEND_ADDR;
           end else begin
-            counter_init = 8'd64; // # data bits
             nextState = SEND_DATA;
           end
         end
@@ -108,10 +106,10 @@ module bitstream_encoder
         outb = addr_outb;
         if (~pause) begin
           shift_addr = 1;
-          downcount = 1;
+          count = 1;
         end
-        if (curcount == 0) begin
-          counter_init = 8'd4; // # endp bits
+        if (curcount == 8'd7) begin
+          clrcounter = 1;
           nextState = SEND_ENDP;
         end
       end
@@ -120,9 +118,10 @@ module bitstream_encoder
         outb = endp_outb;
         if (~pause) begin
           shift_endp = 1;
-          downcount = 1;
+          count = 1;
         end
-        if (curcount == 0) begin
+        if (curcount == 8'd4) begin
+          clrcounter = 1;
           nextState = IDLE;
         end
       end
@@ -131,9 +130,10 @@ module bitstream_encoder
         outb = data_outb;
         if (~pause) begin
           shift_data = 1;
-          downcount = 1;
+          count = 1;
         end
-        if (curcount == 0) begin
+        if (curcount == 8'd64) begin
+          clrcounter = 1;
           nextState = IDLE;
         end
       end
