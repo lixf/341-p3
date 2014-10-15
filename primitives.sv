@@ -47,3 +47,69 @@ module counter
     end 
   end
 endmodule
+
+
+module shift_reg
+#(parameter WIDTH = 32)
+(input logic clk, rst_b,
+ input logic inb, 
+ input logic enable,
+ output logic outb);
+
+  logic[WIDTH-1:0] out_reg;
+
+  //use generate to get a bunch of shift registers
+  genvar i;
+  generate 
+    for (i=0;i<WIDTH;i++) begin: REGS
+      if (i == 0)
+        register R (.Q(inb),.D(out_reg[i+1]),.ld_reg(enable),.clr_reg(0),.*);
+      else if (i == (WIDTH-1))
+        register R (.Q(out_reg[i]),.D(outb),.ld_reg(enable),.clr_reg(0),.*);
+      else 
+        register R (.Q(out_reg[i]),.D(out_reg[i+1]),.ld_reg(enable),.clr_reg(0),.*);
+    end
+  endgenerate 
+
+endmodule 
+
+
+
+module test_shift;
+
+  logic clk, rst_b, inb, outb, enable;
+  
+  shift_reg#(5) dut(.*);
+  
+  initial begin
+    clk = 0;
+    rst_b <= 0;
+    #2 rst_b <= 1;
+    forever #5 clk = ~clk;
+  end
+  
+  //use clocking
+  default clocking myDelay
+    @(posedge clk);
+  endclocking 
+
+  initial begin
+    $monitor($time," in: %b, out: %b, enable: %b, internal: %b",inb,outb,enable,dut.out_reg);
+    inb <= 1;
+    enable <=1;
+    ##3;
+    inb <=0;
+    ##2;
+    inb <= 1;
+    ##3;
+    inb <=0;
+    ##2;
+    enable <= 0;
+    ##5;
+    enable <=1;
+    ##5;
+    $finish;
+  end
+endmodule 
+
+
