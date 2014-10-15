@@ -19,7 +19,7 @@ module bitstream_encoder
   logic shift_pid, shift_addr, shift_data, shift_endp;
   /* counter */
   logic [7:0] curcount;
-  logic count, clrcounter
+  logic count, clrcounter;
 
   enum logic [3:0] {OUT = 4'b0001, IN = 4'b1001, DATA0 = 4'b0011,
                     ACK = 4'b0010, NAK = 4'b1010} current_pid;
