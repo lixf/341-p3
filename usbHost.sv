@@ -26,7 +26,7 @@ module usbHost
         .pause_in(pause_crc),.outb(outb_crc),.sending(sending_crc),.*);
   bit_stuff bs(.inb(outb_crc),.outb(outb_bit),.pause(pause_bit_stuff),.*);
   nrzi n(.inb(outb_bit),.outb(outb_nrzi),.*);
-  to_usb tu(.data_bit(outb_nrzi),.data_start(gotpkt_bs),.data_end(pktend),
+  to_usb tu(.data_bit(outb_nrzi),.data_start(sending_bs),.data_end(pktend),
         .d_p(wires.DP),.d_m(wires.DM),.ready(usb_ready),.*);
   
   assign pktend = ~sending_bs,
@@ -47,7 +47,6 @@ module usbHost
     @(posedge clk);
     pktready_bs <= 0;
     @(posedge clk);
-    if (~gotpkt_bs) $display("packet sent but not received??");
     @(posedge clk);
     @(posedge clk);
     @(posedge clk);

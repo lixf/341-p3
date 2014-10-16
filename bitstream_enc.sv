@@ -54,6 +54,7 @@ module bitstream_encoder
     state <= nextState;
     
   always_comb begin
+    nextState = state;
     /* control for registers */
     loadpkt = 0;
     shift_pid = 0;
@@ -89,7 +90,7 @@ module bitstream_encoder
           shift_pid = 1;
           count = 1;
         end
-        if (curcount == 8'd8) begin
+        if (curcount == 8'd7) begin
           count = 0;
           clrcounter = 1;
           if (current_pid == ACK || current_pid == NAK) begin
@@ -109,7 +110,7 @@ module bitstream_encoder
           shift_addr = 1;
           count = 1;
         end
-        if (curcount == 8'd7) begin
+        if (curcount == 8'd6) begin
           clrcounter = 1;
           nextState = SEND_ENDP;
         end
@@ -122,7 +123,7 @@ module bitstream_encoder
           shift_endp = 1;
           count = 1;
         end
-        if (curcount == 8'd4) begin
+        if (curcount == 8'd3) begin
           clrcounter = 1;
           nextState = IDLE;
         end
@@ -135,7 +136,7 @@ module bitstream_encoder
           shift_data = 1;
           count = 1;
         end
-        if (curcount == 8'd64) begin
+        if (curcount == 8'd63) begin
           clrcounter = 1;
           nextState = IDLE;
         end
@@ -177,15 +178,15 @@ module test_bitstream;
     pause <= 0;
     pktready <= 1;
     ##5;
-    //pid <= 4'b1001;
-    //addr <= 7'b0101101;
-    //endp <= 4'b1001;
-    //pktready <= 1;
-    //##5;
-    //pid <= 4'b0001;
-    //addr <= 7'b1111101;
-    //endp <= 4'b1100;
-    //pktready <= 1;
+    pid <= 4'b1001;
+    addr <= 7'b0101101;
+    endp <= 4'b1001;
+    pktready <= 1;
+    ##5;
+    pid <= 4'b0001;
+    addr <= 7'b1111101;
+    endp <= 4'b1100;
+    pktready <= 1;
     ##5;
     ##5;
     ##5;
@@ -193,6 +194,4 @@ module test_bitstream;
     $finish;
   end
 endmodule 
-
 */
-
