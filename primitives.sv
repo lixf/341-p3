@@ -100,7 +100,7 @@ module crc_shiftreg
   assign outb = Q[0];
 
 endmodule
-
+/*
 module test_shift_piso;
 
   logic clk, rst_b, ld_reg, clr_reg, en, outb;
@@ -147,7 +147,7 @@ module test_shift_piso;
     $finish;
   end
 endmodule 
-/*
+
 module test_shift;
 
   logic clk, rst_b, inb, outb, enable;

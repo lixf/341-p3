@@ -4,7 +4,6 @@
  *  @author Chris Williamson
  **/
 
-`include "primitives.sv"
 
 module crc
 (input logic clk, rst_L,
@@ -61,6 +60,8 @@ module crc
         init_crc = 1;
         if (recving)
           nextState = CALCCRC;
+        else 
+          nextState = IDLE;
       end
       CALCCRC: begin
         sending = 1;
@@ -73,6 +74,8 @@ module crc
           clear_count = 1;
           nextState = SENDCRC;
         end
+        else 
+          nextState = CALCCRC;
       end
       SENDCRC: begin
         sending = 1;
@@ -81,8 +84,54 @@ module crc
         outb = crc_outb;
         if (curcount == 4)
           nextState = IDLE;
+        else 
+          nextState = SENDCRC;
       end
     endcase
 
   end
 endmodule: crc
+
+
+/*
+module testbench;
+
+  logic clk, rst_L;
+  logic pause_out,inb, recving;
+  logic pause_in,outb, sending;
+
+  crc dut(.*);
+
+  initial begin 
+    clk = 0;
+    rst_L = 0;
+    #2 rst_L <= 1;
+    forever #5 clk = ~clk;
+  end
+
+  initial begin 
+    $monitor($time," rst_L %b, inb %b, outb %b, pause_out %b state: %s",rst_L,inb,outb,pause_out,dut.state);
+    @(posedge clk);
+    inb <= 1;
+    recving <= 1;
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    recving <= 0;
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    $finish;
+  end
+endmodule
+
+
+*/

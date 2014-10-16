@@ -21,7 +21,7 @@ module nrzi
     clr_reg = 0;
     //flip if input is 0
     if(~inb) begin 
-      Q = ~D;
+      D = ~Q;
       ld_reg = 1;
     end
   end

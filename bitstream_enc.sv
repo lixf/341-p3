@@ -3,7 +3,6 @@
  *  @author Chris Williamson
  **/
 
-`include "primitives.sv"
 
 module bitstream_encoder
 (input logic clk, rst_L,
@@ -73,6 +72,8 @@ module bitstream_encoder
       IDLE: begin
         if (pktready)
           nextState = LOAD;
+        else 
+          nextState = IDLE;
       end
       LOAD: begin
         loadpkt = 1;
@@ -83,6 +84,7 @@ module bitstream_encoder
       SEND_PID: begin
         sending = 1;
         outb = pid_outb;
+        nextState = SEND_PID;
         if (~pause) begin
           shift_pid = 1;
           count = 1;
@@ -102,6 +104,7 @@ module bitstream_encoder
       SEND_ADDR: begin
         sending = 1;
         outb = addr_outb;
+        nextState = SEND_ADDR;
         if (~pause) begin
           shift_addr = 1;
           count = 1;
@@ -114,6 +117,7 @@ module bitstream_encoder
       SEND_ENDP: begin
         sending = 1;
         outb = endp_outb;
+        nextState = SEND_ENDP;
         if (~pause) begin
           shift_endp = 1;
           count = 1;
@@ -126,6 +130,7 @@ module bitstream_encoder
       SEND_DATA: begin
         sending = 1;
         outb = data_outb;
+        nextState = SEND_DATA;
         if (~pause) begin
           shift_data = 1;
           count = 1;
@@ -141,7 +146,7 @@ module bitstream_encoder
 endmodule: bitstream_encoder
 
 
-
+/*
 module test_bitstream;
   logic clk, rst_L, pause, pktready;
   logic outb, sending, gotpkt;
@@ -189,5 +194,5 @@ module test_bitstream;
   end
 endmodule 
 
-
+*/
 

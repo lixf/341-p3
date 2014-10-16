@@ -1,47 +1,66 @@
 // Write your usb host here.  Do not modify the port list.
 
-`inlcude "primitives.sv"
+`include "primitives.sv"
 `include "bitstream_enc.sv"
 `include "crc.sv"
 `include "bit_stuff.sv"
-`inlcude "NRZI.sv"
+`include "NRZI.sv"
 `include "to_usb.sv"
 
 module usbHost
   (input logic clk, rst_L, 
   usbWires wires);
  
-    //testbench style to talk to the bitstream encoder
-    local logic pause_bs,pktready_bs;
-    local logic inb_bs,outb_bs,sending_bs,gotpkt_bs;
-    local logic [3:0] pid, endp;
-    local logic [6:0] addr;
-    local logic [63:0] data;
+  //testbench style to talk to the bitstream encoder
+  logic pause_bit_stuff,pktready_bs;
+  logic outb_bs,sending_bs,gotpkt_bs;
+  logic pause_bs, pause_crc, outb_crc, outb_bit, outb_nrzi;
+  logic sending_nrzi, pktend, usb_ready;
+  logic [3:0] pid, endp;
+  logic [6:0] addr;
+  logic [63:0] data;
   
+  bitstream_encoder be(.pause(pause_bs),.pktready(pktready_bs),
+        .outb(outb_bs),.sending(sending_bs),.gotpkt(gotpkt_bs),.*);
+  crc c(.pause_out(pause_bit_stuff),.inb(outb_bs),.recving(sending_bs),
+        .pause_in(pause_crc),.outb(outb_crc),.sending(sending_crc),.*);
+  bit_stuff bs(.inb(outb_crc),.outb(outb_bit),.pause(pause_bit_stuff),.*);
+  nrzi n(.inb(outb_bit),.outb(outb_nrzi),.*);
+  to_usb tu(.data_bit(outb_nrzi),.data_start(gotpkt_bs),.data_end(pktend),
+        .d_p(wires.DP),.d_m(wires.DM),.ready(usb_ready),.*);
+  
+  assign pktend = ~sending_bs,
+         pause_bs = pause_bit_stuff | pause_crc;
   /* Tasks needed to be finished to run testbenches */
-
+  
   task prelabRequest
   // sends an OUT packet with ADDR=5 and ENDP=4
   // packet should have SYNC and EOP too
   (input bit  [7:0] data);
     
     //instaniate all modules
-    bitstream_encoder be(.pause(pause_bs),.pktready(pktready_bs),.outb(outb_bs),
-                          .sending(sending_bs),.gotpkt(gotpkt),.*);
-    crc c(.pause_out(pause),.inb(),.recving(),.pause_in(),.outb(),.sending(),.*);
-    
-    bit_stuff bs(.inb(),.outb(),.pause(),.*);
-    nrzi(.inb(),.outb(),.*);
-    to_usb(.data_bit(),.data_start(),.data_end(),.d_p(wires.DP),.d_m(wires.DM),.*);
-
     @(posedge clk);
     pid <= 4'b0001;
     addr <= 7'd5;
     endp <= 4'd4;
-    pktready <= 1;
+    pktready_bs <= 1;
     @(posedge clk);
-    pktready <= 0;
-    if (~gotpkt) $display("packet sent but not received??");
+    pktready_bs <= 0;
+    @(posedge clk);
+    if (~gotpkt_bs) $display("packet sent but not received??");
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
     @(posedge clk);
   
   endtask: prelabRequest
