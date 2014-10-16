@@ -33,7 +33,7 @@ module bitstream_encoder
   piso_shiftreg #(8) pid_reg(.rst_b(rst_L), .D({~pid, pid}), .outb(pid_outb),
                              .ld_reg(loadpkt), .clr_reg(1'b0), .en(shift_pid), .*);
   
-  piso_shiftreg #(8) syn_reg(.rst_b(rst_L), .D(8'b0000_0001), .outb(syn_outb),
+  piso_shiftreg #(8) syn_reg(.rst_b(rst_L), .D(8'b1000_0000), .outb(syn_outb),
                              .ld_reg(loadpkt), .clr_reg(1'b0), .en(shift_syn), .*);
 
   piso_shiftreg #(7) addr_reg(.rst_b(rst_L), .D(addr), .outb(addr_outb),
@@ -106,6 +106,7 @@ module bitstream_encoder
         
       SEND_PID: begin
         sending = 1;
+        start = 1;
         outb = pid_outb;
         nextState = SEND_PID;
         if (~pause) begin

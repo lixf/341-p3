@@ -10,7 +10,7 @@ module to_usb
  input logic data_bit,data_start,data_end,
  output logic d_p, d_m, ready);
   
-  enum logic [1:0] {IDLE,SEND,END1,END2} state, next_state;
+  enum logic [2:0] {IDLE,SEND,END0,END1,END2} state, next_state;
 
   always_ff @(posedge clk, negedge rst_L) begin 
     if (~rst_L)
@@ -32,24 +32,28 @@ module to_usb
         else begin
           next_state = SEND;
           //send the SOP
-          d_m = 1;
+          //d_m = 1;
         end
       end 
       
       SEND: begin 
+        if (data_bit)
+          d_p = 1; // send J
+        else 
+          d_m = 1; // send K
+        
         if (data_end) begin 
-          next_state = END1;
-          //first SE0 sent
+          next_state = END0;
         end 
         else begin 
           next_state = SEND;
-          if (data_bit)
-            d_p = 1; // send J
-          else 
-            d_m = 1; // send K
         end 
       end 
 
+      END0: begin 
+        next_state = END1;
+        //first SE0
+      end 
       END1: begin 
         next_state = END2;
         //second SE0
