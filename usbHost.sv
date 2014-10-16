@@ -15,16 +15,18 @@ module usbHost
   logic pause_bit_stuff,pktready_bs;
   logic outb_bs,sending_bs,gotpkt_bs;
   logic pause_bs, pause_crc, outb_crc, outb_bit, outb_nrzi;
-  logic sending_nrzi, pktend, usb_ready;
+  logic sending_nrzi, pktend, usb_ready, sop;
   logic [3:0] pid, endp;
   logic [6:0] addr;
   logic [63:0] data;
   
   bitstream_encoder be(.pause(pause_bs),.pktready(pktready_bs),
-        .outb(outb_bs),.sending(sending_bs),.gotpkt(gotpkt_bs),.*);
+        .outb(outb_bs),.sending(sending_bs),.gotpkt(gotpkt_bs),
+        .start(sop),.*);
   crc c(.pause_out(pause_bit_stuff),.inb(outb_bs),.recving(sending_bs),
         .pause_in(pause_crc),.outb(outb_crc),.sending(sending_crc),.*);
-  bit_stuff bs(.inb(outb_crc),.outb(outb_bit),.pause(pause_bit_stuff),.*);
+  bit_stuff bs(.inb(outb_crc),.outb(outb_bit),.pause(pause_bit_stuff),
+        .start(sop),.*);
   nrzi n(.inb(outb_bit),.outb(outb_nrzi),.*);
   to_usb tu(.data_bit(outb_nrzi),.data_start(sending_bs),.data_end(pktend),
         .d_p(wires.DP),.d_m(wires.DM),.ready(usb_ready),.*);

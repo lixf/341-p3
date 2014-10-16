@@ -8,14 +8,15 @@ module bitstream_encoder
 (input logic clk, rst_L,
  input logic pause, pktready,
  input logic [3:0] pid, [6:0] addr, [63:0] data, [3:0] endp,
- output logic outb, sending, gotpkt);
+ output logic outb, sending, start, gotpkt);
 
-  enum logic [2:0] {IDLE, LOAD, 
+  enum logic [2:0] {IDLE, LOAD,SEND_SYNC, 
               SEND_PID, SEND_ADDR, SEND_DATA, SEND_ENDP} state, nextState;
   /* shift registers */
   logic loadpkt;
   logic pid_outb, addr_outb, data_outb, endp_outb;
   logic shift_pid, shift_addr, shift_data, shift_endp;
+  logic syn_outb, shift_syn;
   /* counter */
   logic [7:0] curcount;
   logic count, clrcounter;
@@ -31,6 +32,9 @@ module bitstream_encoder
 
   piso_shiftreg #(8) pid_reg(.rst_b(rst_L), .D({~pid, pid}), .outb(pid_outb),
                              .ld_reg(loadpkt), .clr_reg(1'b0), .en(shift_pid), .*);
+  
+  piso_shiftreg #(8) syn_reg(.rst_b(rst_L), .D(8'b0000_0001), .outb(syn_outb),
+                             .ld_reg(loadpkt), .clr_reg(1'b0), .en(shift_syn), .*);
 
   piso_shiftreg #(7) addr_reg(.rst_b(rst_L), .D(addr), .outb(addr_outb),
                              .ld_reg(loadpkt), .clr_reg(1'b0), .en(shift_addr), .*);
@@ -68,6 +72,7 @@ module bitstream_encoder
     /* counter control */
     clrcounter = 0;
     count = 0;
+    start = 0;
 
     case (state)
       IDLE: begin
@@ -80,8 +85,25 @@ module bitstream_encoder
         loadpkt = 1;
         gotpkt = 1;
         clrcounter = 1;
-        nextState = SEND_PID;
+        nextState = SEND_SYNC;
       end
+
+      SEND_SYNC: begin
+        sending = 1;
+        start = 1;
+        outb = syn_outb;
+        nextState = SEND_SYNC;
+        if (~pause) begin
+          shift_syn = 1;
+          count = 1;
+        end
+        if (curcount == 8'd7) begin
+          count = 0;
+          clrcounter = 1;
+          nextState = SEND_PID;
+        end
+      end
+        
       SEND_PID: begin
         sending = 1;
         outb = pid_outb;
