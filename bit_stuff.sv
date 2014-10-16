@@ -7,6 +7,7 @@
 module bit_stuff
 (input logic clk, rst_L,
  input logic inb,     // the input bit stream
+ input logic start,   // the start of the packet is ignored
  output logic outb,   // the output stream
  output logic pause); // control signal to tell the upstream to pause
 
@@ -14,6 +15,12 @@ module bit_stuff
   logic[2:0] cnt;
   logic inc_cnt, clr_cnt;
 
+  //bits to ignore 
+  logic [3:0] cnt16;
+  logic inc_cnt16, clr_cnt16;
+  
+  counter#(4) cnt_to_16(.rst_b(rst_L), .up(1'b1), .cnt(cnt16),
+            .inc_cnt(inc_cnt16),.clr_cnt(clr_cnt16),.*);
   counter#(3) cnt_to_6(.rst_b(rst_L), .up(1'b1), .*);
 
   assign outb = pause ? 0 : inb;
@@ -22,15 +29,24 @@ module bit_stuff
     pause = 0;
     clr_cnt = 0;
     inc_cnt = 0;
-    if (cnt == 3'd6) begin 
-      clr_cnt = 1;
-      pause = 1;
-    end 
+    clr_cnt16 = 0;
+    inc_cnt16 = 0;
+
+    if (start) begin
+      inc_cnt16 = 1;
+    else if (cnt16 == 4'd15) begin
+      clr_cnt16 = 1;
     else begin 
-      if (inb) 
-        inc_cnt = 1;
-      else 
+      if (cnt == 3'd6) begin 
         clr_cnt = 1;
+        pause = 1;
+      end 
+      else begin 
+        if (inb) 
+          inc_cnt = 1;
+        else 
+          clr_cnt = 1;
+      end
     end
   end
 endmodule /* bit_stuff */
