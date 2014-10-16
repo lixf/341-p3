@@ -2,15 +2,18 @@
 
 `inlcude "primitives.sv"
 `include "bitstream_enc.sv"
-
+`include "crc.sv"
+`include "bit_stuff.sv"
+`inlcude "NRZI.sv"
+`include "to_usb.sv"
 
 module usbHost
   (input logic clk, rst_L, 
   usbWires wires);
  
     //testbench style to talk to the bitstream encoder
-    local logic pause,pktready;
-    local logic inb,outb,sending,gotpkt;
+    local logic pause_bs,pktready_bs;
+    local logic inb_bs,outb_bs,sending_bs,gotpkt_bs;
     local logic [3:0] pid, endp;
     local logic [6:0] addr;
     local logic [63:0] data;
@@ -23,7 +26,13 @@ module usbHost
   (input bit  [7:0] data);
     
     //instaniate all modules
-    bitstream_encoder be(.*);
+    bitstream_encoder be(.pause(pause_bs),.pktready(pktready_bs),.outb(outb_bs),
+                          .sending(sending_bs),.gotpkt(gotpkt),.*);
+    crc c(.pause_out(pause),.inb(),.recving(),.pause_in(),.outb(),.sending(),.*);
+    
+    bit_stuff bs(.inb(),.outb(),.pause(),.*);
+    nrzi(.inb(),.outb(),.*);
+    to_usb(.data_bit(),.data_start(),.data_end(),.d_p(wires.DP),.d_m(wires.DM),.*);
 
     @(posedge clk);
     pid <= 4'b0001;

@@ -30,9 +30,6 @@ endmodule /* bit_stuff */
 
 
 
-
-
-
 /*
 // testbench for NRZI
 module testbench;

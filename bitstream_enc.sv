@@ -55,8 +55,6 @@ module bitstream_encoder
     state <= nextState;
     
   always_comb begin
-
-    nextState = state;
     /* control for registers */
     loadpkt = 0;
     shift_pid = 0;
@@ -167,7 +165,7 @@ module test_bitstream;
   endclocking 
 
   initial begin
-    $monitor($time," pid: %b addr: %b outb: %b sending: %b gotpkt %b",pid,addr,outb,sending,gotpkt);
+    $monitor($time," pid: %b addr: %b outb: %b sending: %b gotpkt %b state: %s",pid,addr,outb,sending,gotpkt,dut.state);
     pid <= 4'b0001;
     addr <= 7'b1101101;
     endp <= 4'b1101;
