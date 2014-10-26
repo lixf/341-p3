@@ -7,33 +7,194 @@
  *  @bug Nope
  */
 
+//`include "pipeline.sv"
 `include "primitives.sv"
 
-module ProtocolFSM;
-  logic clk,rst_L;
+module tester;
+ logic clk, rst_L;
+ logic send_in;          // from R/W FSM to send a IN 
+ logic input_ready;      // control signal from R/W FSM
+ logic [63:0] data;      // stuff to send out
+ logic [6:0] addr; 
+ logic [3:0] endp;    
+ 
+ logic down_input;       // control signal from down stream: things here
+ logic down_ready;       // if the downstream is ready to receive
+ logic corrupted;        // asserted if the data is corrupted
+ logic ack;              // received a ack
+ logic nack;             // received a nack
+ logic [63:0] data_in;   // data received
+
+ logic free;            // to R/W FSM
+ logic cancel;          // cancel this transaction
+ logic recv_ready;      // data received and ready to be read
+ logic [63:0] data_recv;// the data received 
+ 
+ logic pktready;        // to downstream senders
+ logic [3:0] pid_out; 
+ logic [6:0] addr_out; 
+ logic [63:0] data_out; 
+ logic [3:0] endp_out;
+
   //use clocking
   default clocking myDelay
     @(posedge clk);
   endclocking 
+
+  initial begin
+    clk = 0;
+    rst_L <= 0; //reset
+    forever #5 clk <= ~clk; 
+  end
+
+  //decalre some properties here!
+  
+
+  ProtocolFSM link(.*);
+  
+  initial begin
+    $monitor(" to R/W  (free: %b, cancel: %b, data_recv: %h)\n to down (pktready: %b, pid_out: %b, addr_out: %b, data_out: %h, endp_out: %b\n states: out: %s, in:%s rst_L: %b\n", 
+              free, cancel, data_recv, pktready, pid_out, addr_out, data_out, endp_out, link.zelda.state, link.hilda.state,link.rst_L);
+    ##1;
+    $display("init! test start in next clk cycle");
+    rst_L <= 1;
+    ##1;
+    $display("start testing OUT packet");
+    send_in <= 0;
+    data <= 64'haabbccdd; // data sending
+    addr <= 7'b0000111;   // whatever
+    endp <= 4'b0011;      // lol 
+    input_ready <= 1;
+
+    //emulate the downstream too 
+    down_ready <= 1;
+    
+    ##1;
+    //deassert some stuff
+    input_ready <= 0;
+    
+    //wait for a long time
+    ##10;
+    //send ack
+    ack <= 1;
+    
+    ##10;
+    $finish;
+  end
+
 endmodule
+
+
+module ProtocolFSM
+ //from R/W FSM
+(input logic clk, rst_L,
+ input logic send_in,          // from R/W FSM to send a IN 
+ input logic input_ready,      // control signal from R/W FSM
+ input logic [63:0] data,      // stuff to send out
+ input logic [6:0] addr, 
+ input logic [3:0] endp,    
+ 
+ //from downstream
+ input logic down_input,       // control signal from down stream: things here
+ input logic down_ready,       // if the downstream is ready to receive
+ input logic corrupted,        // asserted if the data is corrupted
+ input logic ack,              // received a ack
+ input logic nack,             // received a nack
+ input logic [63:0] data_in,   // data received
+
+ //to R/W FSM
+ output logic free,            // to R/W FSM
+ output logic cancel,          // cancel this transaction
+ output logic recv_ready,      // data received and ready to be read
+ output logic [63:0] data_recv,// the data received 
+ 
+ //to downstream
+ output logic pktready,        // to downstream senders
+ output logic [3:0] pid_out, 
+ output logic [6:0] addr_out, 
+ output logic [63:0] data_out, 
+ output logic [3:0] endp_out);
+
+  
+  logic in_ready, out_ready; // sending in or out?
+  logic in_free, out_free;
+  logic in_cancel, out_cancel;
+  logic in_pktready, out_pktready;
+ 
+  //data outputs need to be mux-ed
+  logic [3:0] pid_out_in,pid_out_out; 
+  logic [6:0] addr_out_in,addr_out_out; 
+  logic [63:0] data_out_in,data_out_out; 
+  logic [3:0] endp_out_in, endp_out_out;
+ 
+  //choose mode with comb logic
+  //big MUX
+  always_comb begin
+    in_ready  = 0;
+    out_ready = 0;
+    free      = 0;
+    cancel    = 0;
+    pktready  = 0;
+
+    if (send_in) begin
+      in_ready = input_ready;
+      free     = in_free;
+      cancel   = in_cancel;
+      pktready = in_pktready;
+      pid_out  = pid_out_in;
+      data_out = data_out_in;
+      addr_out = addr_out_in;
+      endp_out = endp_out_in;
+    end 
+
+    else begin 
+      out_ready = input_ready;
+      free      = out_free;
+      cancel    = out_cancel;
+      pktready  = out_pktready;
+      pid_out   = pid_out_out;
+      data_out  = data_out_out;
+      addr_out  = addr_out_out;
+      endp_out  = endp_out_out;
+    end 
+  end
+
+
+  //instantiation here
+  outPktFSM zelda(.send_out(out_ready),.free(out_free),.cancel(out_cancel),
+                  .pktready(out_pktready),.pid_out(pid_out_out),
+                  .addr_out(addr_out_out),.data_out(data_out_out),
+                  .endp_out(endp_out_out),.*);
+  inPktFSM hilda (.send_in(in_ready),.free(in_free),.cancel(in_cancel),
+                  .pktready(in_pktready),.pid_out(pid_out_in),
+                  .addr_out(addr_out_in),.endp_out(endp_out_in),.*);
+  
+  // NOTE on ack/nack: system will be lock step when it waits for ack/nack
+  // so it doesn't need to know about if i'm ready to see an ACK/NACK because 
+  // I'll always be ready when you send ACK/NACK
+
+endmodule
+
+
 
 
 // get stuff from upstream and forward it down
 module outPktFSM 
 (input logic clk, rst_L,
- input logic input_ready,      // control signal from R/W FSM
- input logic [63:0] data,      // data to send
+ input logic send_out,         // R/W FSM wants to send a OUT
  input logic ack, nack,        // ack and nack signals
  input logic down_ready,       // if the downstream is ready to receive
- input logic [6:0] addr_in, 
- input logic [3:0] endp_in,
+ input logic [63:0] data,      // data to send
+ input logic [6:0] addr, 
+ input logic [3:0] endp,
+ 
  output logic free,            // to R/W FSM
  output logic cancel,          // cancel this transaction
  output logic pktready,        // to downstream senders
- output logic [3:0] pid, 
- output logic [6:0] addr, 
+ output logic [3:0] pid_out, 
+ output logic [6:0] addr_out, 
  output logic [63:0] data_out, 
- output logic [3:0] endp);
+ output logic [3:0] endp_out);
   
   enum logic [2:0] {WAIT,S_HEAD,S_DATA,WAIT_ACK,TIMEOUT} state,next_state;  
   
@@ -65,10 +226,10 @@ module outPktFSM
     //init values -- output
     free      = 0;
     pktready  = 0;
-    pid       = 0;
-    addr      = 0;
+    pid_out   = 0;
+    addr_out  = 0;
     data_out  = 0;
-    endp      = 0;
+    endp_out  = 0;
     cancel    = 0;
 
     //init -- internal control signals
@@ -83,12 +244,12 @@ module outPktFSM
     case (state) 
       WAIT: begin 
         
-        if (input_ready) begin
+        if (send_out) begin
           ld_reg = 1; /* capture the data */ 
           //the downstream must be ready here, so send
-          pid = 4'b0001;
-          addr = addr_in;
-          endp = endp_in;
+          pid_out  = 4'b0001;
+          addr_out = addr;
+          endp_out = endp;
           pktready = 1;
           next_state = S_HEAD;
         end
@@ -103,9 +264,9 @@ module outPktFSM
         
         if (down_ready) begin
           //send the DATA0 packet
-          pid = 4'b0011;
-          addr = addr_in;
-          endp = endp_in;
+          pid_out  = 4'b0011;
+          addr_out = addr;
+          endp_out = endp;
           data_out = data_save;
           pktready = 1;
           next_state = S_DATA; 
@@ -126,9 +287,9 @@ module outPktFSM
         end 
         else if (nack) begin
           //resend the data packet
-          pid = 4'b0011;
-          addr = addr_in;
-          endp = endp_in;
+          pid_out  = 4'b0011;
+          addr_out = addr;
+          endp_out = endp;
           data_out = data_save;
           pktready = 1;
           next_state = S_DATA; 
@@ -160,9 +321,9 @@ module outPktFSM
           clr_time = 1;
           inc_timeout = 1;
           //resend the data packet
-          pid = 4'b0011;
-          addr = addr_in;
-          endp = endp_in;
+          pid_out  = 4'b0011;
+          addr_out = addr;
+          endp_out = endp;
           data_out = data_save;
           pktready = 1;
           next_state = S_DATA; 
@@ -180,21 +341,21 @@ endmodule
 module inPktFSM
 (input logic clk, rst_L,
  input logic send_in,          // from R/W FSM to send a IN 
+ input logic [6:0] addr, 
+ input logic [3:0] endp,    
  input logic down_input,       // control signal from down stream: things here
- input logic [63:0] data,      // data received
  input logic down_ready,       // if the downstream is ready to receive
  input logic corrupted,        // asserted if the data is corrupted
- input logic [6:0] addr_in, 
- input logic [3:0] endp_in,    
+ input logic [63:0] data_in,   // the data received from downstream
+ 
  output logic free,            // to R/W FSM
  output logic cancel,          // cancel this transaction
- output logic pktready,        // to downstream senders
+ output logic recv_ready,      // data ready to be read
  output logic [63:0] data_recv,// the data received 
- output logic up_ready,        // signal the upstream that i'm ready
- output logic [3:0] pid, 
- output logic [6:0] addr, 
- output logic [3:0] endp,
- output logic [63:0] data_in); 
+ output logic pktready,        // to downstream senders
+ output logic [3:0] pid_out, 
+ output logic [6:0] addr_out, 
+ output logic [3:0] endp_out);
   
   enum logic [2:0] {WAIT,W_DATA,TIMEOUT} state,next_state;  
   
@@ -219,15 +380,14 @@ module inPktFSM
   //next state logic
   always_comb begin
     //init values -- output
-    free      = 0;
-    pktready  = 0;
-    pid       = 0;
-    addr      = 0;
-    data_in   = 0;
-    endp      = 0;
-    cancel    = 0;
-    up_ready  = 0;
-    data_recv = 0;
+    free       = 0;
+    pktready   = 0;
+    pid_out    = 0;
+    addr_out   = 0;
+    endp_out   = 0;
+    cancel     = 0;
+    data_recv  = 0;
+    recv_ready = 0;
 
     //init -- internal control signals
     inc_time    = 0;
@@ -241,9 +401,9 @@ module inPktFSM
         
         if (send_in) begin
           //the downstream must be ready here, so send
-          pid = 4'b1001;
-          addr = addr_in;
-          endp = endp_in;
+          pid_out  = 4'b1001;
+          addr_out = addr;
+          endp_out = endp;
           pktready = 1;
           next_state = W_DATA;
         end
@@ -260,17 +420,17 @@ module inPktFSM
           //data is here capture
           if (corrupted) begin 
             //send a NACK
-            pid = 4'b1010;
+            pid_out  = 4'b1010;
             pktready = 1;
             next_state = W_DATA;
           end
           else begin
             //send ack
-            pid = 4'b0010;
+            pid_out  = 4'b0010;
             pktready = 1;
             //signal the upstream 
-            data_recv = data;
-            up_ready = 1;
+            recv_ready = 1;
+            data_recv  = data_in;
             next_state = WAIT;
           end
         end
@@ -278,10 +438,10 @@ module inPktFSM
         else begin
           if (cur_time == 20'd20) begin
             inc_timeout = 1;
-            next_state = TIMEOUT;
+            next_state  = TIMEOUT;
           end 
           else begin 
-            inc_time = 1;
+            inc_time   = 1;
             next_state = W_DATA;
           end
         end 
@@ -300,7 +460,7 @@ module inPktFSM
           clr_time = 1;
           inc_timeout = 1;
           //send a NACK
-          pid = 4'b1010;
+          pid_out = 4'b1010;
           pktready = 1;
           next_state = W_DATA;
         end
@@ -312,8 +472,3 @@ module inPktFSM
 
 endmodule
 
-
-
-module ackFSM;
-
-endmodule
