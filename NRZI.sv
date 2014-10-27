@@ -1,6 +1,7 @@
 /** @file NRZI.sv
- *  @brief This implements NRZI in prelab
+ *  @brief NRZI encoding/decoding.
  *  @author Xiaofan Li
+ *  @author Chris Williamson
  **/
 
 
@@ -27,8 +28,19 @@ module nrzi
   end
 endmodule /* bit_stuff */
 
+module nrzi_decode
+(input logic clk, rst_L,
+ input logic inb,
+ output logic outb);
 
+  logic Q,ld_reg,clr_reg;
 
+  register#(1) last_bit(.D(inb), .ld_reg(1'b0), .clr_reg(1'b0),
+                        .rst_b(rst_L), .*);
+  /* Output a 1 when the input stays the same, and 0 when it flips. */
+  assign outb = (Q == inb);
+
+endmodule
 
 /*
 // testbench for NRZI

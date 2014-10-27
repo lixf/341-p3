@@ -1,9 +1,23 @@
-/** @brief Controls logic to output to the USB thumb drive
+/** @brief Controls logic to output to/from the USB thumb drive
  *
  *  @author Xiaofan Li
+ *  @author Chris Williamson
  **/
 
+module to_usb_top
+(input logic clk, rst_L,
+ input logic data_out_bit, data_out_start, data_out_end,
+ output logic data_in_bit, data_in_sending, data_in_end,
+ output logic d_p, d_m, out_ready);
 
+  to_usb usboutput(.data_bit(data_out_bit), .data_start(data_out_start),
+                   .data_end(data_out_end), .d_p(out_d_p), .d_m(out_d_m),
+                   .*);
+
+  /* TODO do tri-state driving, sending all input up to the bit-unstuffer
+   * unless we're currently sending output. */
+
+endmodule
 
 module to_usb
 (input logic clk, rst_L,
@@ -66,5 +80,3 @@ module to_usb
     endcase 
   end
 endmodule
-
-

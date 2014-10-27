@@ -16,29 +16,47 @@ module crc
   enum logic [1:0] {IDLE, CALCCRC, SENDCRC} state, nextState;
   
   logic [4:0] crc_save;
-  //logic crc_outb, crc_done;
   logic crc5_x2_inb, crc5_x2_outb, crc5_x5_inb, crc5_x5_outb;
+
+  logic crc16_x2_inb, crc16_x2_outb;
+  logic crc16_x15_inb, crc16_x15_outb;
+  logic crc16_x16_inb, crc16_x16_outb;
+
   logic shift_crc, init_crc;
   logic [3:0] curcount;
   logic clear_count, inc_count;
 
-  crc_shiftreg #(2) crc5_x2(.Q({crc_save[0],crc_save[1]}), .inb(crc_x2_inb), 
-                    .outb(crc_x2_outb),.shift(shift_crc), .clr(init_crc), 
+  /* 5-bit CRC */
+  crc_shiftreg #(2) crc5_x2(.Q(crc_save[1:0]), .inb(crc5_x2_inb), 
+                    .outb(crc5_x2_outb),.shift(shift_crc), .clr(init_crc), 
                     .rst_b(rst_L), .*);
 
-  crc_shiftreg #(3) crc5_x5(.Q({crc_save[2],crc_save[3],crc_save[4]}), .inb(crc_x5_inb), 
-                    .outb(crc_x5_outb),.shift(shift_crc), .clr(init_crc), 
+  crc_shiftreg #(3) crc5_x5(.Q(crc_save[4:2]), .inb(crc5_x5_inb), 
+                    .outb(crc5_x5_outb),.shift(shift_crc), .clr(init_crc), 
                     .rst_b(rst_L), .*);
   
-  /*
-  piso_shiftreg #(5) storedcrc(.D(crc_save), .ld_reg(crc_done), .clr_reg(1'b0), 
-                    .en(state == SENDCRC), .outb(crc_outb), .rst_b(rst_L), .*);
-  */
+  /* 16-bit CRC */
+  crc_shiftreg #(2) crc16_x2(.Q(), .inb(crc16_x2_inb), 
+                    .outb(crc16_x2_outb),.shift(shift_crc), .clr(init_crc), 
+                    .rst_b(rst_L), .*);
+
+  crc_shiftreg #(13) crc16_x15(.Q(), .inb(crc16_x15_inb), 
+                    .outb(crc15_x2_outb),.shift(shift_crc), .clr(init_crc), 
+                    .rst_b(rst_L), .*);
+
+  crc_shiftreg #(1) crc16_x16(.Q(), .inb(crc16_x16_inb), 
+                    .outb(crc16_x16_outb),.shift(shift_crc), .clr(init_crc), 
+                    .rst_b(rst_L), .*);
+  
   counter #(4) outcrc_remaining(.inc_cnt(inc_count), .up(1'b1), .cnt(curcount), 
                                 .clr_cnt(clear_count), .rst_b(rst_L), .*);
 
-  assign crc_x2_inb = crc_x5_outb ^ inb;
-  assign crc_x5_inb = crc_x2_inb ^ crc_x2_outb;
+  assign crc5_x2_inb = crc5_x5_outb ^ inb;
+  assign crc5_x5_inb = crc5_x2_inb ^ crc5_x2_outb;
+
+  assign crc16_x2_inb = crc16_x16_outb ^ inb;
+  assign crc16_x15_inb = crc16_x2_inb ^ crc16_x2_outb;
+  assign crc16_x16_inb = crc16_x2_inb ^ crc16_x15_outb;
 
   always_ff @(posedge clk, negedge rst_L)
   if (~rst_L)

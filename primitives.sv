@@ -93,13 +93,14 @@ module crc_shiftreg
   else if (clr)
     Q <= ~0;
   else if (shift)
-    Q <= {inb, Q[WIDTH-1:1]};
+    Q <= {Q[WIDTH-1:1], inb};
   else
     Q <= Q;
   
-  assign outb = Q[0];
+  assign outb = Q[WIDTH-1];
 
 endmodule
+
 /*
 module test_shift_piso;
 
