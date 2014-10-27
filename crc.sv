@@ -117,7 +117,7 @@ module crc_encode
         sending = 1;
         pause_in = 1;
         inc_count = 1;
-        outb = ~crc5_result[4 - curcount];
+        outb = ~crc16_result[4 - curcount];
         if (curcount == 4)begin
           nextState = IDLE;
           init_crc = 1;
@@ -129,7 +129,7 @@ module crc_encode
         sending = 1;
         pause_in = 1;
         inc_count = 1;
-        outb = ~crc5_result[15 - curcount];
+        outb = ~crc16_result[15 - curcount];
         if (curcount == 15)begin
           nextState = IDLE;
           init_crc = 1;
