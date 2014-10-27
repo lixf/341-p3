@@ -64,8 +64,9 @@ module crc_encode
   always_ff @(posedge clk, negedge rst_L)
   if (~rst_L)
     state <= IDLE;
-  else begin
-    if (recving) crctype <= pkttype; // Remember pkt type after done receiving
+  else begin 
+    // Remember the packet type after done receiving
+    if (recving & ~start) crctype <= pkttype;
     state <= nextState;
   end
 

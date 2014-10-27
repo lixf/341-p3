@@ -116,23 +116,27 @@ module bitstream_decoder
        * wrong, send an error instead */
       SEND_PKT: begin
         if (saved_pid[3:0] != ~saved_pid[7:4])
+          /* Invalid PID */
           error = 1;
 
         else if (saved_pid[3:0] == ACK)
           if (curcount == 8)
             haveack = 1;
           else
+            /* Invalid packet length */
             error = 1;
 
         else if (saved_pid[3:0] == NAK)
           if (curcount == 8)
             havenak = 1;
           else
+            /* Invalid packet length */
             error =1;
 
         else if (saved_pid[3:0] == OUT || saved_pid[3:0] == IN) begin
           if (curcount == 24) begin
             if (pkt_out[4:0] != crcpkt_out[4:0])
+              /* Bad CRC */
               error = 1;
             else begin
               havepkt = 1;
@@ -148,6 +152,7 @@ module bitstream_decoder
         else if (saved_pid[3:0] == DATA0) begin
           if (curcount == 88) begin
             if (pkt_out[15:0] != crcpkt_out[15:0])
+              /* Bad CRC */
               error = 1;
             else begin
               havepkt = 1;
@@ -156,7 +161,11 @@ module bitstream_decoder
             end
           end
           else
+            /* Invalid packet length */
             error = 1;
+        else
+          /* Invalid PID */
+          error = 1;
 
         if (got_data) nextState = IDLE;
       end
