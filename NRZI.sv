@@ -35,7 +35,7 @@ module nrzi_decode
 
   logic Q,ld_reg,clr_reg;
 
-  register#(1) last_bit(.D(inb), .ld_reg(1'b0), .clr_reg(1'b0),
+  register#(1) last_bit(.D(inb), .ld_reg(1'b1), .clr_reg(1'b0),
                         .rst_b(rst_L), .*);
   /* Output a 1 when the input stays the same, and 0 when it flips. */
   assign outb = (Q == inb);

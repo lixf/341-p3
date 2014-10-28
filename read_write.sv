@@ -14,29 +14,30 @@ module ReadWrite
  input logic read,            // asserted when read
  input logic tran_ready,      // transaction is ready
  input logic [15:0] mempage,  // the address used for read/write
- input logic [63:0] data_in,  // data to write from R/W FSM
+ input logic [63:0] data_down_rw,  // data to write from R/W FSM
 
  //from protocol FSM
  input logic free,            // if the protocol FSM is able to send
  input logic bad,             // need to cancel the transaction
+ input logic recv_ready_pro,  // FORWRD UP
+ input logic [63:0] data_up_pro,
 
  //to protocol FSM
  output logic send_in,        // send an IN transaction
  output logic input_ready,    // Protocol FSM has valid input from us
  output logic [6:0] addr,
  output logic [3:0] endp,
+ output logic [63:0] data_down_pro,
 
  //to read/write task
- inout logic [63:0] data,      // the data to write out or read in
+ output logic [63:0] data_up_rw, // the data to write out or read in
  output logic recv_ready,      // the received packet is ready 
  output logic done,            // the transaction is done 
  output logic cancel);         // if we failed forwarded from protocol
 
-  enum logic [2:0] {WAIT,OUT,IN,DATA} state, next_state;
+  enum logic [2:0] {WAIT,OUT,IN,DONE} state, next_state;
 
   //declare variable and modules here 
-  logic [63:0] data_out;
-  logic write;
 
   always_ff @(posedge clk) begin 
     if (~rst_L) begin
@@ -46,8 +47,7 @@ module ReadWrite
     end 
   end
 
-  //deal with inout data
-  assign data = write ? data_out : 'bz;
+  assign recv_ready = recv_ready_pro;
 
   //state transition
   always_comb begin
@@ -55,19 +55,17 @@ module ReadWrite
     input_read = 0;
     addr = 0;
     endp = 0;
-    recv_ready = 0;
     cancel = 0;
     done = 0;
-    data_out = 0;
+    data_up_rw = 0;
+    data_down_pro = 0;
 
-    write = 0;
 
     case(state)
       WAIT: begin
         if (tran_ready) begin
           //no matter read or write we do a OUT first
-          data_out = {48'd0,mempage}; // pad the data with addr
-          write = 1;
+          data_down_pro = {48'd0,mempage}; // pad the data with addr
           addr = 7'd5;
           endp = 4'd4;
           send_in = 0; // OUT transaction
@@ -101,8 +99,7 @@ module ReadWrite
             else begin
               
               //next transaction is a out with data
-              data_out = data_in; 
-              write = 1;
+              data_down_pro = data_down_rw; 
               addr = 7'd5;
               endp = 4'd8;
               send_in = 0; // OUT transaction
@@ -128,7 +125,7 @@ module ReadWrite
         end
         else begin
           if (free & read) begin
-            //data is already on the data line
+            data_up_rw = data_up_pro;
             recv_ready = 1;
             done = 1;
             next_state = WAIT;
