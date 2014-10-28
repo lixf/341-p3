@@ -47,8 +47,6 @@ module ReadWrite
     end 
   end
 
-  assign recv_ready = recv_ready_pro;
-
   //state transition
   always_comb begin
     send_in = 0;
@@ -59,6 +57,7 @@ module ReadWrite
     done = 0;
     data_up_rw = 0;
     data_down_pro = 0;
+    recv_ready = 0;
 
 
     case(state)
@@ -124,13 +123,14 @@ module ReadWrite
           next_state = WAIT;
         end
         else begin
-          if (free & read) begin
+          if (recv_ready_pro) begin
             data_up_rw = data_up_pro;
             recv_ready = 1;
             done = 1;
             next_state = WAIT;
           end
-          else if (free & (~read)) begin
+          else if (free) begin
+            //back from a write
             done = 1;
             next_state = WAIT;
           end
