@@ -51,7 +51,7 @@ module bit_unstuff
  output logic pause); // tell the bitstream decoder & CRC to wait a tick
 
 
-  enum logic [1:0] {WAIT_SOP, SEND} state, nextState;
+  enum logic [1:0] {WAIT_SOP, SOP, SEND} state, nextState;
 
   always_ff @(posedge clk, negedge rst_L)
     if (~rst_L)
@@ -86,28 +86,49 @@ module bit_unstuff
        * signal to the rest of the pipeline. */
       WAIT_SOP: begin
         if (recving) begin
-          if (inb) begin
-            clr_sop = 1;
-            if (sopcnt == 3'd7)
-              nextState = SEND;
+          if (~inb) begin
+            inc_sop = 1;
+            nextState = SOP;
           end 
           else
-            inc_sop = 1;
-        end 
-        else
-          clr_sop = 1;
+            clr_sop = 1;
+          //else wait for it
+        end
       end
+
+      SOP: begin 
+        if (inb == 1 && sopcnt == 3'd6) begin
+          inc_sop = 1;
+          nextState = SEND;
+        end
+        else if (inb == 0 && sopcnt != 3'd6) begin
+          nextState = SOP;
+          inc_sop = 1;
+        end
+        else begin 
+          //error
+          clr_sop = 1;
+          nextState = WAIT_SOP;
+        end
+      end
+
       SEND: begin
-        sending = 1;
-        if (cnt == 3'd6) begin 
+        if (~recving) begin
+          nextState = WAIT_SOP;
           clr_cnt = 1;
-          pause = 1;
         end 
         else begin 
-          if (inb) 
-            inc_cnt = 1;
-          else 
+          sending = 1;
+          if (cnt == 3'd6) begin 
             clr_cnt = 1;
+            pause = 1;
+          end 
+          else begin 
+            if (inb) 
+              inc_cnt = 1;
+            else 
+              clr_cnt = 1;
+          end
         end
       end
     endcase

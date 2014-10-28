@@ -8,9 +8,10 @@ module bitstream_encoder
 (input logic clk, rst_L,
  input logic pause, pktready,
  input logic [3:0] pid, [6:0] addr, [63:0] data, [3:0] endp,
- output logic outb, sending, start, gotpkt);
+ output logic outb, sending, down_ready,
+ output logic start, gotpkt);
 
-  enum logic [2:0] {IDLE, LOAD,SEND_SYNC, 
+  enum logic [2:0] {IDLE, SEND_SYNC, 
               SEND_PID, SEND_ADDR, SEND_DATA, SEND_ENDP} state, nextState;
   /* shift registers */
   logic loadpkt;
@@ -73,20 +74,28 @@ module bitstream_encoder
     clrcounter = 0;
     count = 0;
     start = 0;
+    down_ready = 0;
 
     case (state)
       IDLE: begin
-        if (pktready)
-          nextState = LOAD;
-        else 
+        if (pktready)begin
+          loadpkt = 1;
+          gotpkt = 1;
+          clrcounter = 1;
+          nextState = SEND_SYNC;
+          //nextState = LOAD;
+        end
+        else begin 
+          down_ready = 1;
           nextState = IDLE;
+        end
       end
-      LOAD: begin
-        loadpkt = 1;
-        gotpkt = 1;
-        clrcounter = 1;
-        nextState = SEND_SYNC;
-      end
+      //LOAD: begin
+      //  loadpkt = 1;
+      //  gotpkt = 1;
+      //  clrcounter = 1;
+      //  nextState = SEND_SYNC;
+      //end
 
       SEND_SYNC: begin
         sending = 1;
@@ -161,6 +170,7 @@ module bitstream_encoder
         end
         if (curcount == 8'd63) begin
           clrcounter = 1;
+          down_ready = 1;
           nextState = IDLE;
         end
       end

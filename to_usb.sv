@@ -58,7 +58,8 @@ endmodule
 module to_usb
 (input logic clk, rst_L,
  input logic data_bit,data_start,data_end,
- output logic d_p, d_m, ready);
+ output logic d_p, d_m, 
+ output logic ready, sending);
   
   enum logic [2:0] {IDLE,SEND,END0,END1,END2} state, next_state;
 
@@ -73,45 +74,57 @@ module to_usb
     d_p = 0;
     d_m = 0;
     ready = 0;
+    sending = 0;
     case (state)
       IDLE: begin 
         if (~data_start) begin 
+          d_p = 1;
           next_state = IDLE;
           ready = 1;
         end 
         else begin
+          sending = 1;
+          if (data_bit)
+            d_p = 1; // send J
+          else 
+            d_m = 1; // send K
+          
           next_state = SEND;
-          //send the SOP
-          //d_m = 1;
         end
       end 
       
       SEND: begin 
-        if (data_bit)
-          d_p = 1; // send J
-        else 
-          d_m = 1; // send K
         
-        if (data_end) begin 
+        sending = 1;
+        if (data_bit)begin
+          d_p = 1; // send J
+        end
+        else begin  
+          d_m = 1; // send K
+        end
+        if (data_end) begin
           next_state = END0;
         end 
-        else begin 
+        else begin
           next_state = SEND;
-        end 
+        end
       end 
 
       END0: begin 
+        sending = 1;
         next_state = END1;
-        //first SE0
+        //second SE0
       end 
       END1: begin 
         next_state = END2;
-        //second SE0
+        sending = 1;
+        //first SE0
       end 
 
       END2: begin 
+        d_p = 1; // send J
+        sending = 1;
         next_state = IDLE;
-        d_p = 1;
       end
     endcase 
   end

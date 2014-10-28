@@ -15,7 +15,6 @@ module crc
 
   enum logic [1:0] {IDLE, CALCCRC, SENDCRC5, SENDCRC16} state, nextState;
 
-  logic crctype;
   
   logic [4:0] crc5_result;
   logic [15:0] crc16_result;
@@ -28,6 +27,8 @@ module crc
   logic shift_crc, init_crc;
   logic [4:0] curcount;
   logic clear_count, inc_count;
+  logic crctype;
+  logic ld_crctype, clr_crctype;
 
   /* 5-bit CRC */
   crc_shiftreg #(2) crc5_x2(.Q(crc5_result[1:0]), .inb(crc5_x2_inb), 
@@ -44,7 +45,7 @@ module crc
                     .rst_b(rst_L), .*);
 
   crc_shiftreg #(13) crc16_x15(.Q(crc16_result[14:2]), .inb(crc16_x15_inb), 
-                    .outb(crc15_x2_outb),.shift(shift_crc), .clr(init_crc), 
+                    .outb(crc16_x15_outb),.shift(shift_crc), .clr(init_crc), 
                     .rst_b(rst_L), .*);
 
   crc_shiftreg_1b crc16_x16(.Q(crc16_result[15]), .inb(crc16_x16_inb), 
@@ -53,6 +54,9 @@ module crc
   
   counter #(5) outcrc_remaining(.inc_cnt(inc_count), .up(1'b1), .cnt(curcount), 
                                 .clr_cnt(clear_count), .rst_b(rst_L), .*);
+
+  register #(1) crctype_reg(.D(pkttype), .Q(crctype), .ld_reg(ld_crctype),
+                            .clr_reg(clr_crctype), .rst_b(rst_L), .*);
 
   assign crc5_x2_inb = crc5_x5_outb ^ inb;
   assign crc5_x5_inb = crc5_x2_inb ^ crc5_x2_outb;
@@ -66,7 +70,6 @@ module crc
     state <= IDLE;
   else begin 
     // Remember the packet type after done receiving
-    if (recving & ~start) crctype <= pkttype;
     state <= nextState;
   end
 
@@ -79,10 +82,14 @@ module crc
     /* counter control */
     clear_count = 0;
     inc_count = 0;
+    ld_crctype = 0;
+    clr_crctype = 0;
 
     case (state)
       IDLE: begin
         outb = inb;
+        if (start)
+          ld_crctype = 1;
         if (recving & (~start)) begin
           shift_crc = 1;
           nextState = CALCCRC;
@@ -102,41 +109,57 @@ module crc
         if (~recving) begin
           shift_crc = 0;
           clear_count = 0;
-          inc_count = 0;
+          inc_count = 1;
           if (crctype == 1'b0) begin
             outb = ~crc5_result[4 - curcount];
             nextState = SENDCRC5;
           end
           else begin
-            outb = ~crc5_result[15 - curcount];
+            outb = ~crc16_result[15 - curcount];
             nextState = SENDCRC16;
           end
         end else
           nextState = CALCCRC;
       end
       SENDCRC5: begin
-        sending = 1;
-        pause_in = 1;
-        inc_count = 1;
-        outb = ~crc16_result[4 - curcount];
-        if (curcount == 4)begin
-          nextState = IDLE;
-          init_crc = 1;
+        if (~pause_out) begin
+          sending = 1;
+          pause_in = 1;
+          inc_count = 1;
+          outb = ~crc5_result[4 - curcount];
+          if (curcount == 4)begin
+            nextState = IDLE;
+            init_crc = 1;
+          end
+          else 
+            nextState = SENDCRC5;
         end
-        else 
+        else begin
+          sending = 1;
+          pause_in = 1;
+          outb = ~crc5_result[4 - curcount];
           nextState = SENDCRC5;
+        end
       end
       SENDCRC16: begin
-        sending = 1;
-        pause_in = 1;
-        inc_count = 1;
-        outb = ~crc16_result[15 - curcount];
-        if (curcount == 15)begin
-          nextState = IDLE;
-          init_crc = 1;
+        if (~pause_out) begin
+          sending = 1;
+          pause_in = 1;
+          inc_count = 1;
+          outb = ~crc16_result[15 - curcount];
+          if (curcount == 15)begin
+            nextState = IDLE;
+            init_crc = 1;
+          end
+          else 
+            nextState = SENDCRC16;
         end
-        else 
+        else begin
+          sending = 1;
+          pause_in = 1;
+          outb = ~crc16_result[15 - curcount];
           nextState = SENDCRC16;
+        end
       end
 
     endcase

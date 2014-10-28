@@ -8,23 +8,64 @@
 module nrzi
 (input logic clk, rst_L,
  input logic inb,     // the input bit stream
+ input logic data_end, 
+ input logic data_start,
  output logic outb);  // the output stream
   
+  enum logic [1:0] {RUN,WAIT} state, next_state;
   logic D,Q,ld_reg,clr_reg;
 
   register#(1) reg_need_inv(.rst_b(rst_L),.*);
   
+  always_ff @(posedge clk, negedge rst_L) begin 
+    if (~rst_L) begin
+      state <= WAIT;
+    end 
+    else begin 
+      state <= next_state;
+    end 
+  end
+
   //assuming the beginning is 1
-  assign outb = ~D;
+  assign outb = ~Q;
 
   always_comb begin
     ld_reg = 0;
     clr_reg = 0;
-    //flip if input is 0
-    if(~inb) begin 
-      D = ~Q;
-      ld_reg = 1;
-    end
+    
+    case(state) 
+      
+      RUN: begin 
+        
+        if (data_end) begin
+          clr_reg = 1;
+          next_state = WAIT;
+        end
+        else begin
+          if(~inb) begin 
+            D = ~Q;
+            ld_reg = 1;
+          end
+          next_state = RUN;
+        end
+
+      end
+
+      WAIT: begin
+        if (~data_start) begin 
+          clr_reg = 1;
+          next_state = WAIT;
+        end
+        else begin 
+          if(~inb) begin 
+            D = ~Q;
+            ld_reg = 1;
+          end
+          next_state = RUN;
+        end
+      end
+    endcase
+      //flip if input is 0
   end
 endmodule /* bit_stuff */
 

@@ -8,7 +8,6 @@ module bitstream_decoder
 (input logic clk, rst_L,
  input logic pause, recving, inb,
  output logic [63:0] data,
- output logic down_ready,
  output logic havepkt, error, haveack, havenak);
 
   enum logic [1:0] {IDLE, RECV_PKT, SEND_PKT} state, nextState;
@@ -25,8 +24,8 @@ module bitstream_decoder
   logic crc_outb, crc_enable, crc_reset_L;
   logic crc_sending, crc_pause_in, crc_clear;
 
-  enum logic [3:0] {OUT = 4'b0001, IN = 4'b1001, DATA0 = 4'b0011,
-                    ACK = 4'b0010, NAK = 4'b1010} current_pid;
+  enum logic [3:0] {OUT = 4'b1000, IN = 4'b1001, DATA0 = 4'b1100,
+                    ACK = 4'b0100, NAK = 4'b0101} current_pid;
 
   /* Big shift register to hold the entire incoming packet. */
   sipo_shiftreg #(88) packet_reg(.inb(inb), .Q(pkt_out),
@@ -72,7 +71,6 @@ module bitstream_decoder
     error = 0;
     haveack = 0;
     havenak = 0;
-    down_ready = 0;
 
     case (state)
       IDLE: begin
@@ -86,7 +84,6 @@ module bitstream_decoder
           clrcounter = 1;
           clr_reg = 1;
           crc_clear = 0;
-          down_ready = 1;
         end
       end
       RECV_PKT: begin
@@ -121,14 +118,14 @@ module bitstream_decoder
           /* Invalid PID */
           error = 1;
 
-        else if (saved_pid[3:0] == ACK)
+        else if (saved_pid[7:4] == ACK)
           if (curcount == 8)
             haveack = 1;
           else
             /* Invalid packet length */
             error = 1;
 
-        else if (saved_pid[3:0] == NAK)
+        else if (saved_pid[7:4] == NAK)
           if (curcount == 8)
             havenak = 1;
           else
@@ -152,7 +149,7 @@ module bitstream_decoder
         end
         */
 
-        else if (saved_pid[3:0] == DATA0) begin
+        else if (saved_pid[7:4] == DATA0) begin
           if (curcount == 88) begin
             if (pkt_out[15:0] != crcpkt_out[15:0])
               /* Bad CRC */

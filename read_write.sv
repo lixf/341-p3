@@ -35,14 +35,15 @@ module ReadWrite
  output logic done,            // the transaction is done 
  output logic cancel);         // if we failed forwarded from protocol
 
-  enum logic [2:0] {WAIT,OUT,IN,DONE} state, next_state;
+  enum logic [2:0] {WAIT,OUT,IN,LAST,DONE} state, next_state;
 
   //declare variable and modules here 
 
-  always_ff @(posedge clk) begin 
+  always_ff @(posedge clk, negedge rst_L) begin 
     if (~rst_L) begin
       state <= WAIT;
-    end begin
+    end 
+    else begin
       state <= next_state;
     end 
   end
@@ -86,35 +87,39 @@ module ReadWrite
         end
         else begin
           if (free) begin // protocol FSM finished one transaction
-            
-            if (read) begin // if this is a read transaction
-              //next transaction is a IN transaction
-              send_in = 1;
-              input_ready = 1;
-              addr = 7'd5;
-              endp = 4'd8;
-              next_state = DONE;
-            end            
-            else begin
-              
-              //next transaction is a out with data
-              data_down_pro = data_down_rw; 
-              addr = 7'd5;
-              endp = 4'd8;
-              send_in = 0; // OUT transaction
-              input_ready = 1;
-              next_state = DONE;
-            
-            end 
-          
+            next_state = LAST;
           end 
           else begin
-            
             next_state = OUT; // wait for downstream to be ready
-          
           end
         end
       end
+
+      LAST: begin
+        if (free) begin // protocol FSM finished one transaction
+          next_state = DONE;
+        end
+        else begin
+          if (read) begin // if this is a read transaction
+            //next transaction is a IN transaction
+            send_in = 1;
+            input_ready = 1;
+            addr = 7'd5;
+            endp = 4'd8;
+            next_state = LAST;
+          end            
+          else begin 
+            //next transaction is a out with data
+            data_down_pro = data_down_rw; 
+            addr = 7'd5;
+            endp = 4'd8;
+            send_in = 0; // OUT transaction
+            input_ready = 1;
+            next_state = LAST;
+          end
+        end
+      end
+
 
       DONE: begin
         if (bad) begin 

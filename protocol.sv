@@ -90,6 +90,7 @@ module ProtocolFSM
 (input logic clk, rst_L,
  input logic send_in,          // from R/W FSM to send a IN 
  input logic input_ready,      // control signal from R/W FSM
+ input logic sending_usb,
  input logic [63:0] data,      // stuff to send out
  input logic [6:0] addr, 
  input logic [3:0] endp,    
@@ -106,6 +107,7 @@ module ProtocolFSM
  output logic free,            // to R/W FSM
  output logic cancel,          // cancel this transaction
  output logic recv_ready,      // data received and ready to be read
+ output logic writing,
  output logic [63:0] data_recv,// the data received 
  
  //to downstream
@@ -122,6 +124,7 @@ module ProtocolFSM
   logic in_cancel, out_cancel;
   logic in_pktready, out_pktready;
   logic pkttype_in, pkttype_out;
+  logic writing_out, writing_in;
 
   //data outputs need to be mux-ed
   logic [3:0] pid_out_in,pid_out_out; 
@@ -148,6 +151,7 @@ module ProtocolFSM
       addr_out = addr_out_in;
       endp_out = endp_out_in;
       pkttype  = pkttype_in;
+      writing = writing_in;
     end 
 
     else begin 
@@ -160,6 +164,7 @@ module ProtocolFSM
       addr_out  = addr_out_out;
       endp_out  = endp_out_out;
       pkttype   = pkttype_out;
+      writing = writing_out;
     end 
   end
 
@@ -188,11 +193,13 @@ module outPktFSM
  input logic send_out,         // R/W FSM wants to send a OUT
  input logic ack, nak,        // ack and nak signals
  input logic down_ready,       // if the downstream is ready to receive
+ input logic sending_usb,
  input logic [63:0] data,      // data to send
  input logic [6:0] addr, 
  input logic [3:0] endp,
  
  output logic free,            // to R/W FSM
+ output logic writing_out,     // if we are writing
  output logic cancel,          // cancel this transaction
  output logic pktready,        // to downstream senders
  output logic pkttype_out,
@@ -201,7 +208,7 @@ module outPktFSM
  output logic [63:0] data_out, 
  output logic [3:0] endp_out);
   
-  enum logic [2:0] {WAIT,S_HEAD,S_DATA,WAIT_ACK,TIMEOUT} state,next_state;  
+  enum logic [2:0] {WAIT,S_HEAD,SEND,S_DATA,WAIT_ACK,TIMEOUT} state,next_state;  
   
   logic ld_reg,clr_reg;
   logic [63:0] data_save;
@@ -210,7 +217,7 @@ module outPktFSM
 
   //lots of counters for protocol
   logic inc_time, clr_time, inc_timeout, clr_timeout;
-  logic [19:0] cur_time;
+  logic [7:0] cur_time;
   logic [3:0] timeout;
   logic up = 1'b1; /* counters count up */
   counter #(20) out_timer(.inc_cnt(inc_time), .clr_cnt(clr_time),
@@ -219,7 +226,7 @@ module outPktFSM
                            .cnt(timeout),.rst_b(rst_L),.*);
 
   //implement the FSM
-  always_ff @(posedge clk) begin
+  always_ff @(posedge clk, negedge rst_L) begin
     if (~rst_L) 
       state <= WAIT;
     else 
@@ -237,6 +244,7 @@ module outPktFSM
     endp_out  = 0;
     cancel    = 0;
     pkttype_out = 0;
+    writing_out = 0;
 
     //init -- internal control signals
     clr_reg     = 0;
@@ -257,6 +265,7 @@ module outPktFSM
           addr_out = addr;
           endp_out = endp;
           pktready = 1;
+          writing_out = 1;
           next_state = S_HEAD;
         end
         else begin
@@ -268,15 +277,9 @@ module outPktFSM
 
       S_HEAD: begin 
         
-        if (down_ready) begin
-          //send the DATA0 packet
-          pid_out  = 4'b0011;
-          addr_out = addr;
-          endp_out = endp;
-          data_out = data_save;
-          pkttype_out = 1;
-          pktready = 1;
-          next_state = S_DATA; 
+        if ((~sending_usb) & down_ready) begin
+          //send the DATA0 packet --> prevent deadlock
+          next_state = SEND;
         end
         else begin
           //block if downstream is not ready
@@ -284,13 +287,35 @@ module outPktFSM
         end 
 
       end 
+      
+      SEND: begin 
+          pid_out  = 4'b0011;
+          addr_out = addr;
+          endp_out = endp;
+          data_out = data_save;
+          pkttype_out = 1;
+          pktready = 1;
+          writing_out = 1;
+          next_state = S_DATA; 
+      end
 
       S_DATA: begin 
         
-        //assume the decoding of ACK/NACK does not happen here
         if (ack) begin 
-          free = 1;
-          next_state = WAIT; 
+          if (send_out) begin
+            ld_reg = 1; /* capture the data */ 
+            //the downstream must be ready here, so send
+            pid_out  = 4'b0001;
+            addr_out = addr;
+            endp_out = endp;
+            pktready = 1;
+            writing_out = 1;
+            next_state = S_HEAD;
+          end
+          else begin
+            free = 1;
+            next_state = WAIT; 
+          end
         end 
         else if (nak) begin
           //resend the data packet
@@ -299,16 +324,19 @@ module outPktFSM
           endp_out = endp;
           data_out = data_save;
           pktready = 1;
+          pkttype_out = 1;
+          writing_out = 1;
           next_state = S_DATA; 
         end 
         else begin
           //timeout after 20 clock cycle
-          if (cur_time == 8'd20) begin 
+          if (cur_time == 8'd255) begin 
             inc_timeout = 1;
             next_state = TIMEOUT;
           end 
           else begin
             inc_time = 1;
+            pkttype_out = 1;
             next_state = S_DATA;
           end 
         end 
@@ -333,6 +361,8 @@ module outPktFSM
           endp_out = endp;
           data_out = data_save;
           pktready = 1;
+          pkttype_out = 1;
+          writing_out = 1;
           next_state = S_DATA; 
         end
 
@@ -356,6 +386,7 @@ module inPktFSM
  input logic [63:0] data_in,   // the data received from downstream
  
  output logic free,            // to R/W FSM
+ output logic writing_in,
  output logic cancel,          // cancel this transaction
  output logic recv_ready,      // data ready to be read
  output logic [63:0] data_recv,// the data received 
@@ -369,7 +400,7 @@ module inPktFSM
   
   //lots of counters for protocol
   logic inc_time, clr_time, inc_timeout, clr_timeout;
-  logic [19:0] cur_time;
+  logic [7:0] cur_time;
   logic [3:0] timeout;
   logic up = 1'b1; /* counters count up */
   counter #(20) out_timer(.inc_cnt(inc_time), .clr_cnt(clr_time),
@@ -397,6 +428,7 @@ module inPktFSM
     data_recv  = 0;
     recv_ready = 0;
     pkttype_in = 0;
+    writing_in = 0;
 
     //init -- internal control signals
     inc_time    = 0;
@@ -413,6 +445,7 @@ module inPktFSM
           pid_out  = 4'b1001;
           addr_out = addr;
           endp_out = endp;
+          writing_in = 1;
           pktready = 1;
           next_state = W_DATA;
         end
@@ -431,6 +464,7 @@ module inPktFSM
             //send a NACK
             pid_out  = 4'b1010;
             pktready = 1;
+            writing_in = 1;
             next_state = W_DATA;
           end
           else begin
@@ -440,18 +474,20 @@ module inPktFSM
             pkttype_in = 1;
             //signal the upstream 
             recv_ready = 1;
+            writing_in = 1;
             data_recv  = data_in;
             next_state = WAIT;
           end
         end
         //packet did not come
         else begin
-          if (cur_time == 20'd20) begin
+          if (cur_time == 8'd255) begin
             inc_timeout = 1;
             next_state  = TIMEOUT;
           end 
           else begin 
             inc_time   = 1;
+            pkttype_in = 1;
             next_state = W_DATA;
           end
         end 
@@ -472,6 +508,8 @@ module inPktFSM
           //send a NACK
           pid_out = 4'b1010;
           pktready = 1;
+          pkttype_in = 1;
+          writing_in = 1;
           next_state = W_DATA;
         end
 
