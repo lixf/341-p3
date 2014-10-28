@@ -4,18 +4,54 @@
  *  @author Chris Williamson
  **/
 
-module to_usb_top
+module from_usb
 (input logic clk, rst_L,
- input logic data_out_bit, data_out_start, data_out_end,
- output logic data_in_bit, data_in_sending, data_in_end,
- output logic d_p, d_m, out_ready);
+ input logic d_p, d_m, enable_read,
+ output logic outb, sending, eop);
 
-  to_usb usboutput(.data_bit(data_out_bit), .data_start(data_out_start),
-                   .data_end(data_out_end), .d_p(out_d_p), .d_m(out_d_m),
-                   .*);
+  enum logic [1:0] {DECODE, EOP0, EOP1, EOP2} state, nextState;
 
-  /* TODO do tri-state driving, sending all input up to the bit-unstuffer
-   * unless we're currently sending output. */
+  always_ff @(posedge clk, negedge rst_L)
+    if (~rst_L)
+      state <= DECODE;
+    else
+      state <= nextState;
+
+  always_comb begin
+    eop = 0;
+    sending = 0;
+    outb = 0;
+    nextState = DECODE;
+
+    case (state)
+      DECODE: begin
+        sending = enable_read;
+        if (d_p == 1 && d_m == 0)
+          outb = 1;
+        else if (d_p == 0 && d_m == 1)
+          outb = 0;
+        else if (d_p == 0 && d_m == 0) begin
+          sending = 0;
+          nextState = EOP0;
+        end
+      end
+      EOP0: begin
+        eop = 1;
+        if (d_p == 0 && d_m == 0)
+          nextState = EOP1;
+      end
+      EOP1: begin
+        eop = 1;
+        if (d_p == 0 && d_m == 0)
+          nextState = EOP2;
+      end
+      EOP2: begin
+        eop = 1;
+        if (d_p == 1 && d_m == 0)
+          nextState = DECODE;
+      end
+    endcase
+  end
 
 endmodule
 
