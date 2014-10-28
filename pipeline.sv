@@ -41,3 +41,31 @@
          pause_bs = pause_bit_stuff | pause_crc;
 
 endmodule
+
+/* TODO tri-state driver for DP/DM */
+module pipeIn
+(input logic clk, rst_L,
+ input reading_bits,
+ input logic got_packet,
+ output logic [3:0] pid, endp,
+ output logic [6:0] addr,
+ output logic [63:0] data,
+ output logic pktready, error, ack, nak,
+ usbWires wires);
+
+  logic pause;
+  logic in_bitsream, nrzi_out, bitunstuff_out;
+  logic bitus_sending;
+  logic reading_bits;
+
+  nrzi_decode n(.inb(in_bitstream), .outb(nrzi_out), .*);
+
+  bit_unstuff bu(.inb(nrzi_out), .recving(reading_bits), .sending(bitus_sending),
+                 .outb(bitunstuff_out), .*)
+
+  bitstream_decoder bd(.recving(bitus_sending), .inb(bitunstuff_out), 
+                       .got_data(got_packet), .havepkt(pktready), .haveack(ack),
+                       .havenak(nak), .*);
+
+
+endmodule

@@ -5,7 +5,7 @@
  **/
 
 
-module crc_encode
+module crc
 (input logic clk, rst_L,
  input logic pause_out,
  input logic inb, recving, pkttype, // pkttype = 1 for 16-bit crc, 0 for 5-bit
@@ -13,9 +13,9 @@ module crc_encode
  output logic pause_in,
  output logic outb, sending);
 
-  enum logic [1:0] {IDLE, CALCCRC, SENDCRC} state, nextState;
+  enum logic [1:0] {IDLE, CALCCRC, SENDCRC5, SENDCRC16} state, nextState;
 
-  logic crc_type;
+  logic crctype;
   
   logic [4:0] crc5_result;
   logic [15:0] crc16_result;
@@ -111,7 +111,7 @@ module crc_encode
             outb = ~crc5_result[15 - curcount];
             nextState = SENDCRC16;
           end
-        else
+        end else
           nextState = CALCCRC;
       end
       SENDCRC5: begin
