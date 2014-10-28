@@ -26,7 +26,7 @@
         .start(sop),.*);
   crc c(.pause_out(pause_bit_stuff),.inb(outb_bs),.recving(sending_bs),
         .pause_in(pause_crc),.outb(outb_crc),.sending(sending_crc),
-        .start(sop),.*);
+        .start(sop), .clear(1'b0), .*);
   bit_stuff bs(.inb(outb_crc),.outb(outb_bit),.pause(pause_bit_stuff),
         .start(sop),.*);
   nrzi n(.inb(outb_bit),.outb(outb_nrzi),.*);
@@ -63,8 +63,7 @@ module pipeIn
                  .outb(bitunstuff_out), .*);
 
   bitstream_decoder bd(.recving(bitus_sending), .inb(bitunstuff_out), 
-                       .got_data(got_packet), .havepkt(pktready), .haveack(ack),
-                       .havenak(nak), .*);
+                       .havepkt(pktready), .haveack(ack), .havenak(nak), .*);
 
   assign wires.DP = writing ? 1'bz : usb_dp;
   assign wires.DM = writing ? 1'bz : usb_dm;

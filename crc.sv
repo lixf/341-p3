@@ -7,7 +7,7 @@
 
 module crc
 (input logic clk, rst_L,
- input logic pause_out,
+ input logic clear, pause_out,
  input logic inb, recving, pkttype, // pkttype = 1 for 16-bit crc, 0 for 5-bit
  input logic start,
  output logic pause_in,
@@ -47,7 +47,7 @@ module crc
                     .outb(crc15_x2_outb),.shift(shift_crc), .clr(init_crc), 
                     .rst_b(rst_L), .*);
 
-  crc_shiftreg #(1) crc16_x16(.Q(crc16_result[15]), .inb(crc16_x16_inb), 
+  crc_shiftreg_1b crc16_x16(.Q(crc16_result[15]), .inb(crc16_x16_inb), 
                     .outb(crc16_x16_outb),.shift(shift_crc), .clr(init_crc), 
                     .rst_b(rst_L), .*);
   
@@ -141,6 +141,10 @@ module crc
 
     endcase
 
+    if (clear) begin
+      init_crc = 1;
+      nextState = IDLE;
+    end
   end
 endmodule: crc
 

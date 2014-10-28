@@ -78,6 +78,25 @@ module piso_shiftreg
 
 endmodule 
 
+module sipo_shiftreg
+#(parameter WIDTH = 32)
+(input logic clk, rst_L,
+ input logic inb,
+ input logic clr_reg, en,
+ output logic [WIDTH-1:0] Q);
+
+  always_ff @(posedge clk, negedge rst_L)
+    if (~rst_L)
+      Q <= 0;
+    else if (clr_reg)
+      Q <= 0;
+    else if (en)
+      Q <= {Q[WIDTH-2:0], inb};
+    else
+      Q <= Q;
+ 
+endmodule 
+
 
 module crc_shiftreg
 #(parameter WIDTH = 32)
@@ -93,11 +112,32 @@ module crc_shiftreg
   else if (clr)
     Q <= ~0;
   else if (shift)
-    Q <= {Q[WIDTH-1:1], inb};
+    Q <= {Q[WIDTH-2:0], inb};
   else
     Q <= Q;
   
   assign outb = Q[WIDTH-1];
+
+endmodule
+
+module crc_shiftreg_1b
+(input logic clk, rst_b,
+ input logic clr, // clr initializes the bit to 1
+ input logic shift, inb,
+ output logic outb, // the output bit
+ output logic Q); // the entire contents of the register
+
+  always_ff @(posedge clk, negedge rst_b)
+  if (~rst_b)
+    Q <= 0;
+  else if (clr)
+    Q <= 1;
+  else if (shift)
+    Q <= inb;
+  else
+    Q <= Q;
+  
+  assign outb = Q;
 
 endmodule
 
