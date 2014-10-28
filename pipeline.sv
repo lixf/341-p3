@@ -35,8 +35,8 @@
   assign pktend = (~sending_bs) & (~sending_crc),
          pause_bs = pause_bit_stuff | pause_crc;
   
-  assign wires.DP = sending_bs ? usb_dp : 1'bz 
-  assign wires.DM = sending_bs ? usb_dm : 1'bz
+  assign wires.DP = sending_bs ? usb_dp : 1'bz;
+  assign wires.DM = sending_bs ? usb_dm : 1'bz;
 
 endmodule
 
