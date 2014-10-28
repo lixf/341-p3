@@ -110,6 +110,7 @@ module ProtocolFSM
  
  //to downstream
  output logic pktready,        // to downstream senders
+ output logic pkttype,
  output logic [3:0] pid_out, 
  output logic [6:0] addr_out, 
  output logic [63:0] data_out, 
@@ -120,7 +121,8 @@ module ProtocolFSM
   logic in_free, out_free;
   logic in_cancel, out_cancel;
   logic in_pktready, out_pktready;
- 
+  logic pkttype_in, pkttype_out;
+
   //data outputs need to be mux-ed
   logic [3:0] pid_out_in,pid_out_out; 
   logic [6:0] addr_out_in,addr_out_out; 
@@ -145,6 +147,7 @@ module ProtocolFSM
       data_out = data_out_in;
       addr_out = addr_out_in;
       endp_out = endp_out_in;
+      pkttype  = pkttype_in;
     end 
 
     else begin 
@@ -156,6 +159,7 @@ module ProtocolFSM
       data_out  = data_out_out;
       addr_out  = addr_out_out;
       endp_out  = endp_out_out;
+      pkttype   = pkttype_out;
     end 
   end
 
@@ -191,6 +195,7 @@ module outPktFSM
  output logic free,            // to R/W FSM
  output logic cancel,          // cancel this transaction
  output logic pktready,        // to downstream senders
+ output logic pkttype_out,
  output logic [3:0] pid_out, 
  output logic [6:0] addr_out, 
  output logic [63:0] data_out, 
@@ -231,6 +236,7 @@ module outPktFSM
     data_out  = 0;
     endp_out  = 0;
     cancel    = 0;
+    pkttype_out = 0;
 
     //init -- internal control signals
     clr_reg     = 0;
@@ -268,6 +274,7 @@ module outPktFSM
           addr_out = addr;
           endp_out = endp;
           data_out = data_save;
+          pkttype_out = 1;
           pktready = 1;
           next_state = S_DATA; 
         end
@@ -353,6 +360,7 @@ module inPktFSM
  output logic recv_ready,      // data ready to be read
  output logic [63:0] data_recv,// the data received 
  output logic pktready,        // to downstream senders
+ output logic pkttype_in,
  output logic [3:0] pid_out, 
  output logic [6:0] addr_out, 
  output logic [3:0] endp_out);
@@ -388,6 +396,7 @@ module inPktFSM
     cancel     = 0;
     data_recv  = 0;
     recv_ready = 0;
+    pkttype_in = 0;
 
     //init -- internal control signals
     inc_time    = 0;
@@ -428,6 +437,7 @@ module inPktFSM
             //send ack
             pid_out  = 4'b0010;
             pktready = 1;
+            pkttype_in = 1;
             //signal the upstream 
             recv_ready = 1;
             data_recv  = data_in;
