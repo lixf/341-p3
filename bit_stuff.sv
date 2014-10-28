@@ -62,7 +62,7 @@ module bit_unstuff
   /* SOP detection */
   logic [2:0] sopcnt;
   logic inc_sop, clr_sop;
-  counter#(3) cnt_sop_0s(.inc_cnt(inc_sop), .clr_count(clr_sop),
+  counter#(3) cnt_sop_0s(.inc_cnt(inc_sop), .clr_cnt(clr_sop),
                          .cnt(sopcnt), .rst_b(rst_L), .up(1'b1), .*);
   // number of 1's seen so far
   logic[2:0] cnt;

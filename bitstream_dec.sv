@@ -6,8 +6,9 @@
 
 module bitstream_decoder
 (input logic clk, rst_L,
- input logic pause, recving, inb, got_data,
+ input logic pause, recving, inb,
  output logic [3:0] pid, [6:0] addr, [63:0] data, [3:0] endp,
+ output logic down_ready,
  output logic havepkt, error, haveack, havenak);
 
   enum logic [2:0] {IDLE, RECV, SEND_SYNC, 
@@ -74,6 +75,7 @@ module bitstream_decoder
     error = 0;
     haveack = 0;
     havenak = 0;
+    down_ready = 0;
 
     case (state)
       IDLE: begin
@@ -87,6 +89,7 @@ module bitstream_decoder
           clrcounter = 1;
           clr_reg = 1;
           crc_rst_L = 0;
+          down_ready = 1;
         end
       end
       RECV_PKT: begin

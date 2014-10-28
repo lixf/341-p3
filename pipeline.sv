@@ -45,8 +45,7 @@ endmodule
 /* TODO tri-state driver for DP/DM */
 module pipeIn
 (input logic clk, rst_L,
- input reading_bits,
- input logic got_packet,
+ output logic down_ready,
  output logic [3:0] pid, endp,
  output logic [6:0] addr,
  output logic [63:0] data,
@@ -55,13 +54,16 @@ module pipeIn
 
   logic pause;
   logic in_bitsream, nrzi_out, bitunstuff_out;
-  logic bitus_sending;
-  logic reading_bits;
+  logic bitus_sending, in_sending;
+  logic eop;
+
+  from_usb fu(.d_p(wires.DP),.d_m(wires.DM),.enable_read(read),.outb(in_bitstream),
+              .sending(in_sending),.*);
 
   nrzi_decode n(.inb(in_bitstream), .outb(nrzi_out), .*);
 
-  bit_unstuff bu(.inb(nrzi_out), .recving(reading_bits), .sending(bitus_sending),
-                 .outb(bitunstuff_out), .*)
+  bit_unstuff bu(.inb(nrzi_out), .recving(in_sending), .sending(bitus_sending),
+                 .outb(bitunstuff_out), .*);
 
   bitstream_decoder bd(.recving(bitus_sending), .inb(bitunstuff_out), 
                        .got_data(got_packet), .havepkt(pktready), .haveack(ack),

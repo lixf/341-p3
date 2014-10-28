@@ -6,6 +6,8 @@
 `include "bit_stuff.sv"
 `include "NRZI.sv"
 `include "to_usb.sv"
+`include "protocol.sv"
+`include "read_write.sv"
 
 module usbHost
   (input logic clk, rst_L, 
@@ -15,16 +17,18 @@ module usbHost
   // sends an OUT packet with ADDR=5 and ENDP=4
   // packet should have SYNC and EOP too
   (input bit  [7:0] data);
-    
-    //instaniate all modules
-    @(posedge clk);
-    pid <= 4'b0001;
-    addr <= 7'd5;
-    endp <= 4'd4;
-    pktready_bs <= 1;
-    ##1;
-    pktready_bs <= 0;
-    ##30;
+   
+
+
+    ////instaniate all modules
+    //@(posedge clk);
+    //pid <= 4'b0001;
+    //addr <= 7'd5;
+    //endp <= 4'd4;
+    //pktready_bs <= 1;
+    //##1;
+    //pktready_bs <= 0;
+    //##30;
      
   endtask: prelabRequest
 
@@ -83,6 +87,8 @@ module usbHost
   logic [3:0] pid_out; 
   logic [6:0] addr_out; 
   logic [3:0] endp_out;
+  
+  logic [15:0] rw_addr;
 
   // pipeline-out signals
 
@@ -91,8 +97,8 @@ module usbHost
   ReadWrite rw(.recv_ready_pro(recv_ready),.recv_ready(recv_ready_up),
                .done(tran_finish),.cancel(unsuccess),.*);
   ProtocolFSM pro(.data(data_down_pro),.data_in(data_in_pro),
-                  .data_recv(data_up_pro),.data_out(data_out_pro).*);
-  pipeIn pi();
+                  .data_recv(data_up_pro),.data_out(data_out_pro),.*);
+  pipeIn pi(.pktready(down_input),.dummy(down_ready),.error(currupted),.*); // TODO dummy
   pipeOut po(.pid(pid_out),.endp(endp_out),.addr(addr_out),
              .pktready_bs(pktready),.data(data_out_pro),.*);
 

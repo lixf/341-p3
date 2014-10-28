@@ -13,7 +13,7 @@ module ReadWrite
  //from the read/write task
  input logic read,            // asserted when read
  input logic tran_ready,      // transaction is ready
- input logic [15:0] mempage,  // the address used for read/write
+ input logic [15:0] rw_addr,  // the address used for read/write
  input logic [63:0] data_down_rw,  // data to write from R/W FSM
 
  //from protocol FSM
@@ -52,7 +52,7 @@ module ReadWrite
   //state transition
   always_comb begin
     send_in = 0;
-    input_read = 0;
+    input_ready = 0;
     addr = 0;
     endp = 0;
     cancel = 0;
@@ -65,7 +65,7 @@ module ReadWrite
       WAIT: begin
         if (tran_ready) begin
           //no matter read or write we do a OUT first
-          data_down_pro = {48'd0,mempage}; // pad the data with addr
+          data_down_pro = {48'd0,rw_addr}; // pad the data with addr
           addr = 7'd5;
           endp = 4'd4;
           send_in = 0; // OUT transaction
@@ -133,6 +133,7 @@ module ReadWrite
           else if (free & (~read)) begin
             done = 1;
             next_state = WAIT;
+          end
           else begin 
             //not ready
             next_state = DONE;

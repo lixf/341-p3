@@ -8,7 +8,7 @@
  */
 
 //`include "pipeline.sv"
-`include "primitives.sv"
+//`include "primitives.sv"
 
 module tester;
  logic clk, rst_L;
