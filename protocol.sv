@@ -10,79 +10,79 @@
 //`include "pipeline.sv"
 //`include "primitives.sv"
 
-module tester;
- logic clk, rst_L;
- logic send_in;          // from R/W FSM to send a IN 
- logic input_ready;      // control signal from R/W FSM
- logic [63:0] data;      // stuff to send out
- logic [6:0] addr; 
- logic [3:0] endp;    
- 
- logic down_input;       // control signal from down stream: things here
- logic down_ready;       // if the downstream is ready to receive
- logic corrupted;        // asserted if the data is corrupted
- logic ack;              // received a ack
- logic nak;             // received a nak
- logic [63:0] data_in;   // data received
-
- logic free;            // to R/W FSM
- logic cancel;          // cancel this transaction
- logic recv_ready;      // data received and ready to be read
- logic [63:0] data_recv;// the data received 
- 
- logic pktready;        // to downstream senders
- logic [3:0] pid_out; 
- logic [6:0] addr_out; 
- logic [63:0] data_out; 
- logic [3:0] endp_out;
-
-  //use clocking
-  default clocking myDelay
-    @(posedge clk);
-  endclocking 
-
-  initial begin
-    clk = 0;
-    rst_L <= 0; //reset
-    forever #5 clk <= ~clk; 
-  end
-
-  //decalre some properties here!
-  
-
-  ProtocolFSM link(.*);
-  
-  initial begin
-    $monitor(" to R/W  (free: %b, cancel: %b, data_recv: %h)\n to down (pktready: %b, pid_out: %b, addr_out: %b, data_out: %h, endp_out: %b\n states: out: %s, in:%s rst_L: %b\n", 
-              free, cancel, data_recv, pktready, pid_out, addr_out, data_out, endp_out, link.zelda.state, link.hilda.state,link.rst_L);
-    ##1;
-    $display("init! test start in next clk cycle");
-    rst_L <= 1;
-    ##1;
-    $display("start testing OUT packet");
-    send_in <= 0;
-    data <= 64'haabbccdd; // data sending
-    addr <= 7'b0000111;   // whatever
-    endp <= 4'b0011;      // lol 
-    input_ready <= 1;
-
-    //emulate the downstream too 
-    down_ready <= 1;
-    
-    ##1;
-    //deassert some stuff
-    input_ready <= 0;
-    
-    //wait for a long time
-    ##10;
-    //send ack
-    ack <= 1;
-    
-    ##10;
-    $finish;
-  end
-
-endmodule
+//module tester;
+// logic clk, rst_L;
+// logic send_in;          // from R/W FSM to send a IN 
+// logic input_ready;      // control signal from R/W FSM
+// logic [63:0] data;      // stuff to send out
+// logic [6:0] addr; 
+// logic [3:0] endp;    
+// 
+// logic down_input;       // control signal from down stream: things here
+// logic down_ready;       // if the downstream is ready to receive
+// logic corrupted;        // asserted if the data is corrupted
+// logic ack;              // received a ack
+// logic nak;             // received a nak
+// logic [63:0] data_in;   // data received
+//
+// logic free;            // to R/W FSM
+// logic cancel;          // cancel this transaction
+// logic recv_ready;      // data received and ready to be read
+// logic [63:0] data_recv;// the data received 
+// 
+// logic pktready;        // to downstream senders
+// logic [3:0] pid_out; 
+// logic [6:0] addr_out; 
+// logic [63:0] data_out; 
+// logic [3:0] endp_out;
+//
+//  //use clocking
+//  default clocking myDelay
+//    @(posedge clk);
+//  endclocking 
+//
+//  initial begin
+//    clk = 0;
+//    rst_L <= 0; //reset
+//    forever #5 clk <= ~clk; 
+//  end
+//
+//  //decalre some properties here!
+//  
+//
+//  ProtocolFSM link(.*);
+//  
+//  initial begin
+//    $monitor(" to R/W  (free: %b, cancel: %b, data_recv: %h)\n to down (pktready: %b, pid_out: %b, addr_out: %b, data_out: %h, endp_out: %b\n states: out: %s, in:%s rst_L: %b\n", 
+//              free, cancel, data_recv, pktready, pid_out, addr_out, data_out, endp_out, link.zelda.state, link.hilda.state,link.rst_L);
+//    ##1;
+//    $display("init! test start in next clk cycle");
+//    rst_L <= 1;
+//    ##1;
+//    $display("start testing OUT packet");
+//    send_in <= 0;
+//    data <= 64'haabbccdd; // data sending
+//    addr <= 7'b0000111;   // whatever
+//    endp <= 4'b0011;      // lol 
+//    input_ready <= 1;
+//
+//    //emulate the downstream too 
+//    down_ready <= 1;
+//    
+//    ##1;
+//    //deassert some stuff
+//    input_ready <= 0;
+//    
+//    //wait for a long time
+//    ##10;
+//    //send ack
+//    ack <= 1;
+//    
+//    ##10;
+//    $finish;
+//  end
+//
+//endmodule
 
 
 module ProtocolFSM

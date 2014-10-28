@@ -2,6 +2,7 @@
 
 `include "primitives.sv"
 `include "bitstream_enc.sv"
+`include "bitstream_dec.sv"
 `include "crc.sv"
 `include "bit_stuff.sv"
 `include "NRZI.sv"
@@ -78,6 +79,7 @@ module usbHost
   logic [63:0] data_in_pro;   //into the protocol
   logic cancel;          // cancel this transaction
   logic recv_ready;      // data received and ready to be read
+  logic pkttype;
   
   logic down_input;       // control signal from down stream
   logic down_ready;       // if the downstream is ready to receive

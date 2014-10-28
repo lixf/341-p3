@@ -11,6 +11,7 @@
  input logic [6:0] addr,
  input logic pktready_bs,
  input logic [63:0] data,
+ input logic pkttype,
  usbWires wires);
  
   logic usb_dp, usb_dm;
