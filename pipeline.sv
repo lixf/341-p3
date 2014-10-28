@@ -3,12 +3,6 @@
  *  @author Xiaofan Li
  */
 
-`include "primitives.sv"
-`include "bitstream_enc.sv"
-`include "crc.sv"
-`include "bit_stuff.sv"
-`include "NRZI.sv"
-`include "to_usb.sv"
 
 //directly write to the output usb wires
  module pipeOut

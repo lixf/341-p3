@@ -8,6 +8,7 @@
 `include "to_usb.sv"
 `include "protocol.sv"
 `include "read_write.sv"
+`include "pipeline.sv"
 
 module usbHost
   (input logic clk, rst_L, 
@@ -98,7 +99,7 @@ module usbHost
                .done(tran_finish),.cancel(unsuccess),.*);
   ProtocolFSM pro(.data(data_down_pro),.data_in(data_in_pro),
                   .data_recv(data_up_pro),.data_out(data_out_pro),.*);
-  pipeIn pi(.pktready(down_input),.dummy(down_ready),.error(currupted),.*); // TODO dummy
+  pipeIn pi(.pktready(down_input),.error(corrupted),.*);
   pipeOut po(.pid(pid_out),.endp(endp_out),.addr(addr_out),
              .pktready_bs(pktready),.data(data_out_pro),.*);
 
