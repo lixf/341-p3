@@ -43,8 +43,6 @@ endmodule
 module pipeIn
 (input logic clk, rst_L, writing,
  output logic down_ready,
- output logic [3:0] pid, endp,
- output logic [6:0] addr,
  output logic [63:0] data,
  output logic pktready, error, ack, nak,
  usbWires wires);
@@ -55,10 +53,10 @@ module pipeIn
   logic bitus_sending, in_sending;
   logic eop;
 
-  from_usb fu(.d_p(usb_dp),.d_m(usb_dm),.enable_read(read),.outb(in_bitstream),
+  from_usb fu(.d_p(usb_dp),.d_m(usb_dm),.enable_read(~writing),.outb(in_bitstream),
               .sending(in_sending),.*);
 
-  nrzi_decode n(.inb(in_bitstream), .outb(nrzi_out), .*);
+  nrzi_decode n(.inb(in_bitstream), .outb(nrzi_out), .recving(in_sending), .*);
 
   bit_unstuff bu(.inb(nrzi_out), .recving(in_sending), .sending(bitus_sending),
                  .outb(bitunstuff_out), .*);

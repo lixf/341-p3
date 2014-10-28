@@ -22,7 +22,7 @@ module tester;
  logic down_ready;       // if the downstream is ready to receive
  logic corrupted;        // asserted if the data is corrupted
  logic ack;              // received a ack
- logic nack;             // received a nack
+ logic nak;             // received a nak
  logic [63:0] data_in;   // data received
 
  logic free;            // to R/W FSM
@@ -99,7 +99,7 @@ module ProtocolFSM
  input logic down_ready,       // if the downstream is ready to receive
  input logic corrupted,        // asserted if the data is corrupted
  input logic ack,              // received a ack
- input logic nack,             // received a nack
+ input logic nak,             // received a nak
  input logic [63:0] data_in,   // data received
 
  //to R/W FSM
@@ -173,7 +173,7 @@ module ProtocolFSM
                   .pktready(in_pktready),.pid_out(pid_out_in),
                   .addr_out(addr_out_in),.endp_out(endp_out_in),.*);
   
-  // NOTE on ack/nack: system will be lock step when it waits for ack/nack
+  // NOTE on ack/nak: system will be lock step when it waits for ack/nak
   // so it doesn't need to know about if i'm ready to see an ACK/NACK because 
   // I'll always be ready when you send ACK/NACK
 
@@ -186,7 +186,7 @@ endmodule
 module outPktFSM 
 (input logic clk, rst_L,
  input logic send_out,         // R/W FSM wants to send a OUT
- input logic ack, nack,        // ack and nack signals
+ input logic ack, nak,        // ack and nak signals
  input logic down_ready,       // if the downstream is ready to receive
  input logic [63:0] data,      // data to send
  input logic [6:0] addr, 
@@ -292,7 +292,7 @@ module outPktFSM
           free = 1;
           next_state = WAIT; 
         end 
-        else if (nack) begin
+        else if (nak) begin
           //resend the data packet
           pid_out  = 4'b0011;
           addr_out = addr;

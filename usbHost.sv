@@ -83,8 +83,9 @@ module usbHost
   logic down_ready;       // if the downstream is ready to receive
   logic corrupted;        // asserted if the data is corrupted
   logic ack;              // received a ack
-  logic nack;             // received a nack
+  logic nak;             // received a nak
   logic pktready;        // to downstream senders
+  logic writing;
   logic [3:0] pid_out; 
   logic [6:0] addr_out; 
   logic [3:0] endp_out;
@@ -98,10 +99,11 @@ module usbHost
   ReadWrite rw(.recv_ready_pro(recv_ready),.recv_ready(recv_ready_up),
                .done(tran_finish),.cancel(unsuccess),.*);
   ProtocolFSM pro(.data(data_down_pro),.data_in(data_in_pro),
-                  .data_recv(data_up_pro),.data_out(data_out_pro),.*);
-  pipeIn pi(.pktready(down_input),.error(corrupted),.*);
-  pipeOut po(.pid(pid_out),.endp(endp_out),.addr(addr_out),
-             .pktready_bs(pktready),.data(data_out_pro),.*);
+                  .data_recv(data_up_pro),.data_out(data_out_pro), .*);
+  pipeIn pi(.pktready(down_input), .error(corrupted), .data(data_in_pro),
+            .writing(read), .*);
+  pipeOut po(.pid(pid_out), .endp(endp_out), .addr(addr_out),
+             .pktready_bs(pktready), .data(data_out_pro), .*);
 
 
 endmodule: usbHost

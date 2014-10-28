@@ -31,7 +31,7 @@ endmodule /* bit_stuff */
 module nrzi_decode
 (input logic clk, rst_L,
  input logic inb, recving,
- output logic outb, sending, eop);
+ output logic outb, eop);
 
   logic Q,ld_reg,clr_reg;
 
