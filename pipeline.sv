@@ -13,6 +13,7 @@
  input logic [63:0] data,
  usbWires wires);
  
+  logic usb_dp, usb_dm;
   //testbench style to talk to the bitstream encoder
   logic pause_bit_stuff;
   logic outb_bs,sending_bs,gotpkt_bs;
@@ -29,16 +30,18 @@
         .start(sop),.*);
   nrzi n(.inb(outb_bit),.outb(outb_nrzi),.*);
   to_usb tu(.data_bit(outb_nrzi),.data_start(sending_bs),.data_end(pktend),
-        .d_p(wires.DP),.d_m(wires.DM),.ready(usb_ready),.*);
+        .d_p(usb_dp),.d_m(usb_dm),.ready(usb_ready),.*);
   
   assign pktend = (~sending_bs) & (~sending_crc),
          pause_bs = pause_bit_stuff | pause_crc;
+  
+  assign wires.DP = sending_bs ? usb_dp : 1'bz 
+  assign wires.DM = sending_bs ? usb_dm : 1'bz
 
 endmodule
 
-/* TODO tri-state driver for DP/DM */
 module pipeIn
-(input logic clk, rst_L,
+(input logic clk, rst_L, writing,
  output logic down_ready,
  output logic [3:0] pid, endp,
  output logic [6:0] addr,
@@ -46,12 +49,13 @@ module pipeIn
  output logic pktready, error, ack, nak,
  usbWires wires);
 
+  logic usb_dm, usb_dp;
   logic pause;
   logic in_bitsream, nrzi_out, bitunstuff_out;
   logic bitus_sending, in_sending;
   logic eop;
 
-  from_usb fu(.d_p(wires.DP),.d_m(wires.DM),.enable_read(read),.outb(in_bitstream),
+  from_usb fu(.d_p(usb_dp),.d_m(usb_dm),.enable_read(read),.outb(in_bitstream),
               .sending(in_sending),.*);
 
   nrzi_decode n(.inb(in_bitstream), .outb(nrzi_out), .*);
@@ -63,5 +67,7 @@ module pipeIn
                        .got_data(got_packet), .havepkt(pktready), .haveack(ack),
                        .havenak(nak), .*);
 
-
+  assign wires.DP = writing ? 1'bz : usb_dp;
+  assign wires.DM = writing ? 1'bz : usb_dm;
+  
 endmodule
