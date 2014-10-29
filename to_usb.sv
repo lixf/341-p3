@@ -5,7 +5,7 @@
  **/
 
 module from_usb
-(input logic clk, rst_L,
+(input logic clk, rst_L, enable_read,
  input logic d_p, d_m,
  output logic outb, sending, eop);
 
@@ -25,7 +25,7 @@ module from_usb
 
     case (state)
       DECODE: begin
-        sending = 1;
+        sending = enable_read;
         if (d_p == 1 && d_m == 0)
           outb = 1;
         else if (d_p == 0 && d_m == 1)

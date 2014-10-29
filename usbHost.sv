@@ -50,7 +50,7 @@ module usbHost
   logic ack;              // received a ack
   logic nak;             // received a nak
   logic pktready;        // to downstream senders
-  logic writing_top;
+  logic writing_top, writing;
   logic inpipe_recving;
   logic [3:0] pid_out; 
   logic [6:0] addr_out; 

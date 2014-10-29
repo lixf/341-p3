@@ -42,9 +42,9 @@
 endmodule
 
 module pipeIn
-(input logic clk, rst_L,
+(input logic clk, rst_L, writing,
  output logic [63:0] data,
- output logic pktready, error, ack, nak, inpipe_recving,
+ output logic pktready, error, ack, nak,
  input logic usb_dp,
  input logic usb_dm);
 
@@ -53,10 +53,10 @@ module pipeIn
   logic bitus_sending, in_sending;
   logic eop, dec_recv;
   
-  assign dec_recv = in_sending; 
-  assign inpipe_recving = dec_recv | eop;
+  assign dec_recv = (~writing) & in_sending;
 
-  from_usb fu(.d_p(usb_dp),.d_m(usb_dm),.outb(in_bitstream),.sending(in_sending),.*);
+  from_usb fu(.d_p(usb_dp),.d_m(usb_dm),.enable_read(~writing),.outb(in_bitstream),
+              .sending(in_sending),.*);
 
   nrzi_decode n(.inb(in_bitstream), .outb(nrzi_out), .recving(in_sending), .*);
 
