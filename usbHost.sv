@@ -66,7 +66,7 @@ module usbHost
   ProtocolFSM pro(.data(data_down_pro),.data_in(data_in_pro),
                   .data_recv(data_up_pro),.data_out(data_out_pro), .cancel(bad), .*);
   pipeIn pi(.pktready(down_input), .error(corrupted), .data(data_in_pro),
-            .usb_dp(pi_dp),.usb_dm(pi_dm), .*);
+            .writing(writing_top),.usb_dp(pi_dp),.usb_dm(pi_dm), .*);
   pipeOut po(.pid(pid_out), .endp(endp_out), .addr(addr_out),
              .pktready_bs(pktready), .data(data_out_pro),.usb_dp(po_dp),
              .usb_dm(po_dm), .*);
