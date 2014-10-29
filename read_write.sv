@@ -67,7 +67,7 @@ module ReadWrite
       WAIT: begin
         if (tran_ready) begin
           //no matter read or write we do a OUT first
-          data_down_pro = {48'd0,rw_addr}; // pad the data with addr
+          data_down_pro = {rw_addr,48'd0}; // pad the data with addr
           addr = 7'd5;
           endp = 4'd4;
           send_in = 0; // OUT transaction

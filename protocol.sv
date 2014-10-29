@@ -298,6 +298,7 @@ module outPktFSM
           pkttype_out = 1;
           pktready = 1;
           writing_out = 1;
+          clr_time = 1;
           next_state = S_DATA; 
       end
 
@@ -460,6 +461,7 @@ module inPktFSM
           pktready = 1;
           clr_result =1;
           clr_hold = 1;
+          clr_time = 1;
           next_state = W_DATA;
         end
         else begin

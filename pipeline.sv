@@ -36,7 +36,7 @@
   to_usb tu(.data_bit(outb_nrzi),.data_start(sending_bs),.data_end(pktend),
         .d_p(usb_dp),.d_m(usb_dm),.ready(usb_ready),.sending(sending_usb),.*);
   
-  assign pktend = (~sending_bs) & (~sending_crc),
+  assign pktend = (~sending_bs) & (~sending_crc) & (~pause_bs),
          pause_bs = pause_bit_stuff | pause_crc;
   
 endmodule

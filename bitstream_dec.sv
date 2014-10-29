@@ -10,7 +10,7 @@ module bitstream_decoder
  output logic [63:0] data,
  output logic havepkt, error, haveack, havenak);
 
-  enum logic [1:0] {IDLE, RECV_PKT, SEND_PKT} state, nextState;
+  enum logic [2:0] {IDLE, RECV_PKT, EOP1,EOP2,SEND_PKT} state, nextState;
   /* shift registers */
   logic [87:0] pkt_out;
   logic [7:0] saved_pid;
@@ -107,10 +107,18 @@ module bitstream_decoder
             shift_pkt = 0;
             shift_pid = 0;
             count = 0;
-            nextState = SEND_PKT;
+            nextState = EOP1;
           end
         end
       end
+
+      EOP1:
+        nextState = EOP2;
+
+      EOP2:
+        nextState = SEND_PKT;
+
+
       /* If the packet is valid, send it.  If we notice that something is
        * wrong, send an error instead */
       SEND_PKT: begin
@@ -131,24 +139,6 @@ module bitstream_decoder
           else
             /* Invalid packet length */
             error =1;
-
-        /*
-        else if (saved_pid[3:0] == OUT || saved_pid[3:0] == IN) begin
-          if (curcount == 24) begin
-            if (pkt_out[4:0] != crcpkt_out[4:0])
-              error = 1;
-            else begin
-              havepkt = 1;
-              pid = saved_pid[3:0];
-              addr = pkt_out[15:9];
-              endp = pkt_out[8:5];
-            end
-          end
-          else
-            error = 1;
-        end
-        */
-
         else if (saved_pid[7:4] == DATA0) begin
           if (curcount == 88) begin
             if (pkt_out[15:0] != crcpkt_out[15:0])
