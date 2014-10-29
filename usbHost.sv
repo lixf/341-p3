@@ -130,9 +130,11 @@ module usbHost
     tran_ready <= 1;
     rw_addr <= mempage;
     data_down_rw <= data;
+    ##1;
+    tran_ready <= 0;
 
     wait(tran_finish);
-    success <= (recv_ready & ~cancel);
+    success <= ~cancel;
     ##1; 
   endtask: writeData
   

@@ -35,22 +35,22 @@ module ReadWrite
  output logic done,            // the transaction is done 
  output logic cancel);         // if we failed forwarded from protocol
 
-  enum logic [2:0] {WAIT,OUT,IN,LAST,DONE} state, next_state;
-
-  //declare variable and modules here 
-
-  always_ff @(posedge clk, negedge rst_L) begin 
-    if (~rst_L) begin
-      state <= WAIT;
-    end 
-    else begin
-      state <= next_state;
-    end 
-  end
-
-  //state transition
-  always_comb begin
-    send_in = 0;
+  enum logic [2:0] {WAIT,OUT,IN,LAST,OUT2  ,DONE} state, next_state;
+                                           
+  //declare variable and modules here      
+                                           
+  always_ff @(posedge clk, negedge rst_L)   begin 
+    if (~rst_L) begin                      
+      state <= WAIT;                       
+    end                                    
+    else begin                             
+      state <= next_state;                 
+    end                                    
+  end                                      
+                                           
+  //state transition                       
+  always_comb begin                        
+    send_in = 0;                           
     input_ready = 0;
     addr = 0;
     endp = 0;
@@ -70,7 +70,6 @@ module ReadWrite
           endp = 4'd4;
           send_in = 0; // OUT transaction
           input_ready = 1;
-
           next_state = OUT;
         end 
         else begin 
@@ -96,54 +95,50 @@ module ReadWrite
       end
 
       LAST: begin
-        if (free) begin // protocol FSM finished one transaction
-          next_state = DONE;
-        end
-        else begin
-          if (read) begin // if this is a read transaction
-            //next transaction is a IN transaction
-            send_in = 1;
-            input_ready = 1;
-            addr = 7'd5;
-            endp = 4'd8;
-            next_state = LAST;
-          end            
-          else begin 
-            //next transaction is a out with data
-            data_down_pro = data_down_rw; 
-            addr = 7'd5;
-            endp = 4'd8;
-            send_in = 0; // OUT transaction
-            input_ready = 1;
-            next_state = LAST;
-          end
+        if (read) begin // if this is a read transaction
+          //next transaction is a IN transaction
+          send_in = 1;
+          input_ready = 1;
+          addr = 7'd5;
+          endp = 4'd8;
+          next_state = OUT2;
+        end            
+        else begin 
+          //next transaction is a out with data
+          data_down_pro = data_down_rw; 
+          addr = 7'd5;
+          endp = 4'd8;
+          send_in = 0; // OUT transaction
+          input_ready = 1;
+          next_state = OUT2;
         end
       end
 
-
-      DONE: begin
+      OUT2: begin
+        if (read)
+          send_in = 1;
         if (bad) begin 
           cancel = 1;
           done = 1;
           next_state = WAIT;
         end
         else begin
-          if (recv_ready_pro) begin
-            data_up_rw = data_up_pro;
-            recv_ready = 1;
-            done = 1;
-            next_state = WAIT;
-          end
-          else if (free) begin
-            //back from a write
-            done = 1;
-            next_state = WAIT;
-          end
-          else begin 
-            //not ready
+          if (free) begin // protocol FSM finished one transaction
             next_state = DONE;
+          end 
+          else begin
+            next_state = OUT2; // wait for downstream to be ready
           end
         end
+      end
+
+      DONE: begin
+        if (recv_ready_pro) begin
+          data_up_rw = data_up_pro;
+          recv_ready = 1;
+        end
+        done = 1;
+        next_state = WAIT;
       end
 
     endcase

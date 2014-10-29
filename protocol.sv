@@ -471,7 +471,6 @@ module inPktFSM
             //send ack
             pid_out  = 4'b0010;
             pktready = 1;
-            pkttype_in = 1;
             //signal the upstream 
             recv_ready = 1;
             writing_in = 1;
@@ -487,7 +486,6 @@ module inPktFSM
           end 
           else begin 
             inc_time   = 1;
-            pkttype_in = 1;
             next_state = W_DATA;
           end
         end 
@@ -508,7 +506,6 @@ module inPktFSM
           //send a NACK
           pid_out = 4'b1010;
           pktready = 1;
-          pkttype_in = 1;
           writing_in = 1;
           next_state = W_DATA;
         end

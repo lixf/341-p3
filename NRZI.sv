@@ -74,12 +74,54 @@ module nrzi_decode
  input logic inb, recving,
  output logic outb);
 
-  logic Q,ld_reg,clr_reg;
+  logic Q,D,ld_reg,clr_reg;
 
-  register#(1) last_bit(.D(inb), .ld_reg(1'b1), .clr_reg(1'b0),
-                        .rst_b(rst_L), .*);
+  enum logic [1:0] {RUN,WAIT} state, next_state;
+
+  always_ff @(posedge clk, negedge rst_L) begin 
+    if (~rst_L) begin
+      state <= WAIT;
+    end 
+    else begin 
+      state <= next_state;
+    end 
+  end
+  register#(1) last_bit(.rst_b(rst_L), .*);
   /* Output a 1 when the input stays the same, and 0 when it flips. */
   assign outb = (Q == inb);
+  
+  always_comb begin
+    ld_reg = 1;
+    clr_reg = 0;
+    
+    case(state) 
+      
+      RUN: begin 
+        
+        if (~recving) begin
+          D = 1;
+          next_state = WAIT;
+        end
+        else begin
+          D = inb;
+          next_state = RUN;
+        end
+
+      end
+
+      WAIT: begin
+        if (~recving) begin 
+          D = 1;
+          next_state = WAIT;
+        end
+        else begin 
+          D = 1;
+          next_state = RUN;
+        end
+      end
+    endcase
+      //flip if input is 0
+  end
 
 endmodule
 

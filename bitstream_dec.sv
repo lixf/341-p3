@@ -42,7 +42,7 @@ module bitstream_decoder
   
   /* Calculate CRC while reading the packet in, so we can verify the CRC is 
    * equal after we're done reading. */
-  crc crc_checker(.pause_out(pause), .pkttype(saved_pid[3:0] == DATA0),
+  crc crc_checker(.pause_out(pause), .pkttype(saved_pid[7:4] == DATA0),
                   .start(curcount < 8), .outb(crc_outb), .sending(crc_sending),
                   .recving(crc_enable), .clear(crc_clear), .pause_in(crc_pause_in), .*);
   sipo_shiftreg #(88) crcpkt_reg(.inb(crc_outb), .Q(crcpkt_out),
