@@ -25,6 +25,7 @@ module ReadWrite
  //to protocol FSM
  output logic send_in,        // send an IN transaction
  output logic input_ready,    // Protocol FSM has valid input from us
+ output logic got_result,
  output logic [6:0] addr,
  output logic [3:0] endp,
  output logic [63:0] data_down_pro,
@@ -59,6 +60,7 @@ module ReadWrite
     data_up_rw = 0;
     data_down_pro = 0;
     recv_ready = 0;
+    got_result = 0;
 
 
     case(state)
@@ -69,6 +71,7 @@ module ReadWrite
           addr = 7'd5;
           endp = 4'd4;
           send_in = 0; // OUT transaction
+          got_result = 1;
           input_ready = 1;
           next_state = OUT;
         end 

@@ -83,7 +83,7 @@ module bitstream_decoder
         else begin
           clrcounter = 1;
           clr_reg = 1;
-          crc_clear = 0;
+          //crc_clear = 1;
         end
       end
       RECV_PKT: begin

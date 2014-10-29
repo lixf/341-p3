@@ -6,10 +6,10 @@
 
 module from_usb
 (input logic clk, rst_L,
- input logic d_p, d_m, enable_read,
+ input logic d_p, d_m,
  output logic outb, sending, eop);
 
-  enum logic [1:0] {DECODE, EOP0, EOP1, EOP2} state, nextState;
+  enum logic [1:0] {DECODE, EOP0, EOP1} state, nextState;
 
   always_ff @(posedge clk, negedge rst_L)
     if (~rst_L)
@@ -25,13 +25,14 @@ module from_usb
 
     case (state)
       DECODE: begin
-        sending = enable_read;
+        sending = 1;
         if (d_p == 1 && d_m == 0)
           outb = 1;
         else if (d_p == 0 && d_m == 1)
           outb = 0;
         else if (d_p == 0 && d_m == 0) begin
           sending = 0;
+          eop = 1;
           nextState = EOP0;
         end
       end
@@ -41,11 +42,6 @@ module from_usb
           nextState = EOP1;
       end
       EOP1: begin
-        eop = 1;
-        if (d_p == 0 && d_m == 0)
-          nextState = EOP2;
-      end
-      EOP2: begin
         eop = 1;
         if (d_p == 1 && d_m == 0)
           nextState = DECODE;

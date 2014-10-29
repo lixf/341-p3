@@ -91,11 +91,13 @@ module ProtocolFSM
  input logic send_in,          // from R/W FSM to send a IN 
  input logic input_ready,      // control signal from R/W FSM
  input logic sending_usb,
+ input logic got_result,
  input logic [63:0] data,      // stuff to send out
  input logic [6:0] addr, 
  input logic [3:0] endp,    
  
  //from downstream
+ input logic inpipe_recving,   // Input pipeline is currently receiving input
  input logic down_input,       // control signal from down stream: things here
  input logic down_ready,       // if the downstream is ready to receive
  input logic corrupted,        // asserted if the data is corrupted
@@ -382,6 +384,8 @@ module inPktFSM
  input logic [3:0] endp,    
  input logic down_input,       // control signal from down stream: things here
  input logic down_ready,       // if the downstream is ready to receive
+ input logic got_result,
+ input logic inpipe_recving,
  input logic corrupted,        // asserted if the data is corrupted
  input logic [63:0] data_in,   // the data received from downstream
  
@@ -411,7 +415,7 @@ module inPktFSM
   counter #(5) out_wait(.inc_cnt(inc_hold), .clr_cnt(clr_hold),
                            .cnt(cnt_hold),.rst_b(rst_L),.*);
   register #(64) result(.D(data_in),.Q(data_recv),.ld_reg(down_input),
-                        .clr_reg(clr_result),.rst_b(rst_L),.*);
+                        .clr_reg(clr_result | got_result),.rst_b(rst_L),.*);
 
   //implement the FSM
   always_ff @(posedge clk) begin
@@ -454,8 +458,8 @@ module inPktFSM
           endp_out = endp;
           writing_in = 1;
           pktready = 1;
-          clr_hold = 1;
           clr_result =1;
+          clr_hold = 1;
           next_state = W_DATA;
         end
         else begin
@@ -466,7 +470,9 @@ module inPktFSM
       end
 
       W_DATA: begin 
-        
+        if (inpipe_recving)
+          next_state = W_DATA;
+        else
         if (corrupted) begin 
           //send a NACK
           pid_out  = 4'b1010;
@@ -511,7 +517,7 @@ module inPktFSM
 
       TIMEOUT: begin
         
-        if (timeout == 4'd8) begin
+        if (timeout == 4'd7) begin
           //cancel the transaction
           clr_time = 1;
           clr_timeout = 1;
