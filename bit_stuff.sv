@@ -68,6 +68,11 @@ module bit_unstuff
   logic[2:0] cnt;
   logic inc_cnt, clr_cnt;
   counter#(3) cnt_to_6(.rst_b(rst_L), .up(1'b1), .*);
+  // Wait until after PID to start stuffing
+  logic[3:0] pidcount;
+  logic inc_pid, clr_pid;
+  counter#(4) cnt_pid(.cnt(pidcount),.inc_cnt(inc_pid),.clr_cnt(clr_pid),
+                      .rst_b(rst_L), .up(1'b1), .*);
 
   assign outb = inb;
   
@@ -78,6 +83,8 @@ module bit_unstuff
     sending = 0;
     inc_sop = 0;
     clr_sop = 0;
+    inc_pid = 0;
+    clr_pid = 0;
     nextState = state;
 
     case (state)
@@ -92,6 +99,7 @@ module bit_unstuff
           end 
           else
             clr_sop = 1;
+            clr_pid = 1;
           //else wait for it
         end
       end
@@ -124,10 +132,14 @@ module bit_unstuff
             pause = 1;
           end 
           else begin 
-            if (inb) 
-              inc_cnt = 1;
-            else 
-              clr_cnt = 1;
+            if (pidcount == 4'd7) begin
+              if (inb) 
+                inc_cnt = 1;
+              else 
+                clr_cnt = 1;
+            end
+            else
+              inc_pid = 1;
           end
         end
       end

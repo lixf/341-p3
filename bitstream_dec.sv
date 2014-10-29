@@ -95,13 +95,13 @@ module bitstream_decoder
            * up until the CRC, feed bits to the CRC module. */
           if (curcount < 8)
             shift_pid = 1;
+          else if (saved_pid[7:4] == DATA0 && curcount > 72)
+            crc_enable = 0;
           /*
           else if ((saved_pid[3:0] == OUT || saved_pid[3:0] == IN)
                    && curcount > 19)
             crc_enable = 0;
           */
-          else if (saved_pid[3:0] == DATA0 && curcount > 72)
-            crc_enable = 0;
 
           if (~recving) begin
             shift_pkt = 0;

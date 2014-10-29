@@ -133,10 +133,8 @@ module ReadWrite
       end
 
       DONE: begin
-        if (recv_ready_pro) begin
-          data_up_rw = data_up_pro;
-          recv_ready = 1;
-        end
+        data_up_rw = data_up_pro;
+        recv_ready = 1;
         done = 1;
         next_state = WAIT;
       end

@@ -220,7 +220,7 @@ module outPktFSM
   logic [7:0] cur_time;
   logic [3:0] timeout;
   logic up = 1'b1; /* counters count up */
-  counter #(20) out_timer(.inc_cnt(inc_time), .clr_cnt(clr_time),
+  counter #(8) out_timer(.inc_cnt(inc_time), .clr_cnt(clr_time),
                           .cnt(cur_time),.rst_b(rst_L),.*);
   counter #(4) out_timeout(.inc_cnt(inc_timeout), .clr_cnt(clr_timeout),
                            .cnt(timeout),.rst_b(rst_L),.*);
@@ -396,17 +396,22 @@ module inPktFSM
  output logic [6:0] addr_out, 
  output logic [3:0] endp_out);
   
-  enum logic [2:0] {WAIT,W_DATA,TIMEOUT} state,next_state;  
+  enum logic [2:0] {WAIT,W_DATA,HOLD,TIMEOUT} state,next_state;  
   
   //lots of counters for protocol
   logic inc_time, clr_time, inc_timeout, clr_timeout;
+  logic inc_hold, clr_hold, clr_result;
   logic [7:0] cur_time;
-  logic [3:0] timeout;
+  logic [4:0] timeout,cnt_hold;
   logic up = 1'b1; /* counters count up */
-  counter #(20) out_timer(.inc_cnt(inc_time), .clr_cnt(clr_time),
+  counter #(8) out_timer(.inc_cnt(inc_time), .clr_cnt(clr_time),
                           .cnt(cur_time),.rst_b(rst_L),.*);
-  counter #(4) out_timeout(.inc_cnt(inc_timeout), .clr_cnt(clr_timeout),
+  counter #(5) out_timeout(.inc_cnt(inc_timeout), .clr_cnt(clr_timeout),
                            .cnt(timeout),.rst_b(rst_L),.*);
+  counter #(5) out_wait(.inc_cnt(inc_hold), .clr_cnt(clr_hold),
+                           .cnt(cnt_hold),.rst_b(rst_L),.*);
+  register #(64) result(.D(data_in),.Q(data_recv),.ld_reg(down_input),
+                        .clr_reg(clr_result),.rst_b(rst_L),.*);
 
   //implement the FSM
   always_ff @(posedge clk) begin
@@ -425,10 +430,12 @@ module inPktFSM
     addr_out   = 0;
     endp_out   = 0;
     cancel     = 0;
-    data_recv  = 0;
     recv_ready = 0;
     pkttype_in = 0;
     writing_in = 0;
+    inc_hold   = 0;
+    clr_hold   = 0;
+    clr_result = 0;
 
     //init -- internal control signals
     inc_time    = 0;
@@ -447,6 +454,8 @@ module inPktFSM
           endp_out = endp;
           writing_in = 1;
           pktready = 1;
+          clr_hold = 1;
+          clr_result =1;
           next_state = W_DATA;
         end
         else begin
@@ -458,30 +467,26 @@ module inPktFSM
 
       W_DATA: begin 
         
-        if (down_input) begin
+        if (corrupted) begin 
+          //send a NACK
+          pid_out  = 4'b1010;
+          pktready = 1;
+          writing_in = 1;
+          next_state = TIMEOUT;
+        end
+        else if (down_input) begin
           //data is here capture
-          if (corrupted) begin 
-            //send a NACK
-            pid_out  = 4'b1010;
-            pktready = 1;
-            writing_in = 1;
-            next_state = W_DATA;
-          end
-          else begin
-            //send ack
-            pid_out  = 4'b0010;
-            pktready = 1;
-            //signal the upstream 
-            recv_ready = 1;
-            writing_in = 1;
-            data_recv  = data_in;
-            next_state = WAIT;
-          end
+          //send ack
+          pid_out  = 4'b0010;
+          pktready = 1;
+          //signal the upstream 
+          recv_ready = 1;
+          writing_in = 1;
+          next_state = HOLD;
         end
         //packet did not come
         else begin
           if (cur_time == 8'd255) begin
-            inc_timeout = 1;
             next_state  = TIMEOUT;
           end 
           else begin 
@@ -492,6 +497,18 @@ module inPktFSM
 
       end 
 
+      HOLD: begin
+        if (cnt_hold == 5'd31) begin 
+          next_state = WAIT;
+        end
+        else begin
+          inc_hold = 1;
+          recv_ready = 1;
+          next_state = HOLD;
+        end
+      end
+
+
       TIMEOUT: begin
         
         if (timeout == 4'd8) begin
@@ -499,6 +516,8 @@ module inPktFSM
           clr_time = 1;
           clr_timeout = 1;
           cancel = 1;
+          free = 1;
+          next_state = WAIT;
         end 
         else begin 
           clr_time = 1;

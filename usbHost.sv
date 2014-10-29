@@ -32,7 +32,6 @@ module usbHost
   logic [63:0] data_down_pro;
   logic [63:0] data_up_pro; 
   logic send_in;          // from R/W FSM to send a IN 
-  logic input_ready;      // control signal from R/W FSM
   logic [6:0] addr; 
   logic [3:0] endp;    
    
@@ -42,6 +41,7 @@ module usbHost
   logic cancel;          // cancel this transaction
   logic recv_ready;      // data received and ready to be read
   logic pkttype;
+  logic input_ready;
   
   logic down_input;       // control signal from down stream
   logic down_ready;       // if the downstream is ready to receive
@@ -62,7 +62,7 @@ module usbHost
   ReadWrite rw(.recv_ready_pro(recv_ready),.recv_ready(recv_ready_up),
                .done(tran_finish),.cancel(unsuccess),.*);
   ProtocolFSM pro(.data(data_down_pro),.data_in(data_in_pro),
-                  .data_recv(data_up_pro),.data_out(data_out_pro), .*);
+                  .data_recv(data_up_pro),.data_out(data_out_pro), .cancel(bad),.*);
   pipeIn pi(.pktready(down_input), .error(corrupted), .data(data_in_pro),
             .writing(writing_top),.usb_dp(pi_dp),.usb_dm(pi_dm), .*);
   pipeOut po(.pid(pid_out), .endp(endp_out), .addr(addr_out),
@@ -109,8 +109,8 @@ module usbHost
     tran_ready <= 1;
     rw_addr <= mempage;
     wait(tran_finish);
-    success <= (recv_ready & ~cancel);
-    data <= data_up_rw;
+    success <= (recv_ready_up & ~cancel);
+    data <= {<<{data_up_rw}};
     ##1; 
 
   endtask: readData
