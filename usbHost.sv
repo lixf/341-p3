@@ -125,12 +125,12 @@ module usbHost
   (input  bit [15:0]  mempage, // Page to write
    input  bit [63:0] data, // array of bytes to write
    output bit        success);
-    read <= 0;
     tran_ready <= 0;
     rw_addr <= 0;
     data_down_rw <= 0;
 
     ##1;
+    read <= 0;
     tran_ready <= 1;
     rw_addr <= mempage;
     data_down_rw <= data;

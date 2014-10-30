@@ -219,10 +219,10 @@ module outPktFSM
 
   //lots of counters for protocol
   logic inc_time, clr_time, inc_timeout, clr_timeout;
-  logic [7:0] cur_time;
+  logic [8:0] cur_time;
   logic [3:0] timeout;
   logic up = 1'b1; /* counters count up */
-  counter #(8) out_timer(.inc_cnt(inc_time), .clr_cnt(clr_time),
+  counter #(9) out_timer(.inc_cnt(inc_time), .clr_cnt(clr_time),
                           .cnt(cur_time),.rst_b(rst_L),.*);
   counter #(4) out_timeout(.inc_cnt(inc_timeout), .clr_cnt(clr_timeout),
                            .cnt(timeout),.rst_b(rst_L),.*);
@@ -333,8 +333,8 @@ module outPktFSM
         end 
         else begin
           //timeout after 20 clock cycle
-          if (cur_time == 8'd255) begin 
-            inc_timeout = 1;
+          if (cur_time == 9'd355) begin 
+            //inc_timeout = 1;
             next_state = TIMEOUT;
           end 
           else begin
