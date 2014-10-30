@@ -13,14 +13,15 @@ The USB host uses the following high-level modules:
 
 * Read/Write FSM - A FSM that talks with the Read/Write tasks and sends commands to the ProtocolFSM (by [@xli2])
 * Protocol FSM - Composed of two parts (by [@xli2]):
-* Out Protocol FSM - Handles all OUT *transactions* by using the OUT pipeline.
+    * Out Protocol FSM - Handles all OUT *transactions* by using the OUT pipeline.
     * In Protocol FSM - Handles all IN *transactions* by using the IN pipeline.
-    * Pipelines - Composed of two parts (by [@cwill]):
-* Out pipeline - Contains bitstream encoder, bit stuffer, NRZI and to_usb.
-* In pipeline - Contains bitstream decoder, bit unstuffer, NRZI and from_usb.
+* Pipelines - Composed of two parts (by [@cwill]):
+    * Out pipeline - Contains bitstream encoder, CRC generator, bit stuffer, NRZI and to_usb.
+    * In pipeline - Contains bitstream decoder, CRC checker, bit unstuffer, NRZI and from_usb.
 
 Handshakes
 --------------
+
 from *Task* to *R/W FSM*:
 
 ```verilog
@@ -111,7 +112,16 @@ from *Protocol FSM* to *Pipelins*
  input logic usb_dm;
 
 ```
-Internal signals from pipeline are omitted because they are mostly serial communication signals
+Internal signals from pipeline are omitted for brevity, but the fundamental
+approach for all the pipeline modules is the same:  We maintain a ready signal
+and a sending (or receiving) signal for all the components of the pipeline,
+which allows each to depend only on the previous step's output.  The exception
+to this is the bit stuffer module, which in both pipelines has a pause signal
+which is sent out to the rest of the pipeline after it to instruct them to
+wait for a stuffed bit and take no action for a clock tick. A top-level
+sending/receiving signal is used essentially as a lock on the USB wires to
+prevent attempts to write and read at the same time.
+
 
 
 
