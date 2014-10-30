@@ -112,7 +112,6 @@ module usbHost
     rw_addr <= mempage;
     ##1;
     tran_ready <= 0;
-    rw_addr <= 0;
     wait(tran_finish);
     success <= (recv_ready_up & ~cancel);
     data <= {<<{data_up_rw}};
@@ -137,7 +136,6 @@ module usbHost
     data_down_rw <= data;
     ##1;
     tran_ready <= 0;
-    rw_addr <= 0;
 
     wait(tran_finish);
     success <= ~cancel;

@@ -149,7 +149,7 @@ module crc
           outb = ~crc16_result[15 - curcount];
           if (curcount == 15)begin
             nextState = IDLE;
-            init_crc = 1;
+            //init_crc = 1;
           end
           else 
             nextState = SENDCRC16;
