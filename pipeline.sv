@@ -31,7 +31,7 @@
         .pause_in(pause_crc),.outb(outb_crc),.sending(sending_crc),
         .start(sop), .clear(1'b0), .*);
   bit_stuff bs(.inb(outb_crc),.outb(outb_bit),.pause(pause_bit_stuff),
-        .start(sop),.*);
+        .start(sop), .do_stuff(sending_crc), .*);
   nrzi n(.inb(outb_bit),.outb(outb_nrzi),.data_end(pktend),.data_start(sop),.*);
   to_usb tu(.data_bit(outb_nrzi),.data_start(sending_bs),.data_end(pktend),
         .d_p(usb_dp),.d_m(usb_dm),.ready(usb_ready),.sending(sending_usb),.*);

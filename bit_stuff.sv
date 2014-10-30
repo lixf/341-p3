@@ -9,6 +9,7 @@ module bit_stuff
 (input logic clk, rst_L,
  input logic inb,     // the input bit stream
  input logic start,   // the start of the packet is ignored
+ input logic do_stuff, // only stuff the signal while bits coming in.
  output logic outb,   // the output stream
  output logic pause); // control signal to tell the upstream to pause
 
@@ -31,7 +32,7 @@ module bit_stuff
     else begin 
       if (cnt == 3'd6) begin 
         clr_cnt = 1;
-        pause = 1;
+        pause = do_stuff; // Only stuff if bits are being sent
       end 
       else begin 
         if (inb) 
