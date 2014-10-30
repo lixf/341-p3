@@ -109,14 +109,16 @@ module crc
         if (~recving) begin
           shift_crc = 0;
           clear_count = 0;
-          inc_count = 1;
-          if (crctype == 1'b0) begin
-            outb = ~crc5_result[4 - curcount];
-            nextState = SENDCRC5;
-          end
-          else begin
-            outb = ~crc16_result[15 - curcount];
-            nextState = SENDCRC16;
+          if (~pause_out) begin
+            inc_count = 1;
+            if (crctype == 1'b0) begin
+              outb = ~crc5_result[4 - curcount];
+              nextState = SENDCRC5;
+            end
+            else begin
+              outb = ~crc16_result[15 - curcount];
+              nextState = SENDCRC16;
+            end
           end
         end else
           nextState = CALCCRC;
