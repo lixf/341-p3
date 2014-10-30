@@ -132,7 +132,7 @@ module bit_unstuff
             pause = 1;
           end 
           else begin 
-            if (pidcount == 4'd7) begin
+            if (pidcount == 4'd8) begin
               if (inb) 
                 inc_cnt = 1;
               else 
