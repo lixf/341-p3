@@ -167,11 +167,11 @@ module bitstream_encoder
         if (~pause) begin
           shift_data = 1;
           count = 1;
-        end
-        if (curcount == 8'd63) begin
-          clrcounter = 1;
-          down_ready = 1;
-          nextState = IDLE;
+          if (curcount == 8'd63) begin
+            clrcounter = 1;
+            down_ready = 1;
+            nextState = IDLE;
+          end
         end
       end
     endcase
