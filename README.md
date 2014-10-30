@@ -21,7 +21,7 @@ The USB host uses the following high-level modules:
 
 Handshakes
 --------------
-1. from *Task* to *R/W FSM*:
+from *Task* to *R/W FSM*:
 
 ```verilog
  //from the read/write task
@@ -51,7 +51,7 @@ Handshakes
  output logic cancel;         // if we failed forwarded from protocol
 
 ``` 
-2. from *R/W FSM* to *Protocol FSM*
+from *R/W FSM* to *Protocol FSM*
  
 ```verilog 
  input logic send_in,          // from R/W FSM to send a IN 
@@ -87,7 +87,7 @@ Handshakes
  output logic [3:0] endp_out;
  
 ```
-3. from *Protocol FSM* to *Pipelins*
+from *Protocol FSM* to *Pipelins*
 
 ```verilog
  input logic [3:0] pid,
@@ -111,7 +111,7 @@ Handshakes
  input logic usb_dm;
 
 ```
-4. Internal signals from pipeline are omitted because they are mostly serial communication signals
+Internal signals from pipeline are omitted because they are mostly serial communication signals
 
 
 
