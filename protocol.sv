@@ -262,11 +262,6 @@ module outPktFSM
         
         if (send_out) begin
           ld_reg = 1; /* capture the data */ 
-          //the downstream must be ready here, so send
-          pid_out  = 4'b0001;
-          addr_out = addr;
-          endp_out = endp;
-          pktready = 1;
           writing_out = 1;
           next_state = S_HEAD;
         end
@@ -281,6 +276,11 @@ module outPktFSM
         
         if ((~sending_usb) & down_ready) begin
           //send the DATA0 packet --> prevent deadlock
+          //the downstream must be ready here, so send
+          pid_out  = 4'b0001;
+          addr_out = addr;
+          endp_out = endp;
+          pktready = 1;
           next_state = SEND;
         end
         else begin

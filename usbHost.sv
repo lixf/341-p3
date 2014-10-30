@@ -64,7 +64,7 @@ module usbHost
   ReadWrite rw(.recv_ready_pro(recv_ready),.recv_ready(recv_ready_up),
                .done(tran_finish),.*);
   ProtocolFSM pro(.data(data_down_pro),.data_in(data_in_pro),
-                  .data_recv(data_up_pro),.data_out(data_out_pro), .cancel(bad), .*);
+                .data_recv(data_up_pro),.data_out(data_out_pro), .cancel(bad), .*);
   pipeIn pi(.pktready(down_input), .error(corrupted), .data(data_in_pro),
             .writing(writing_top),.usb_dp(pi_dp),.usb_dm(pi_dm), .*);
   pipeOut po(.pid(pid_out), .endp(endp_out), .addr(addr_out),
@@ -112,6 +112,7 @@ module usbHost
     rw_addr <= mempage;
     ##1;
     tran_ready <= 0;
+    rw_addr <= 0;
     wait(tran_finish);
     success <= (recv_ready_up & ~cancel);
     data <= {<<{data_up_rw}};
@@ -136,6 +137,7 @@ module usbHost
     data_down_rw <= data;
     ##1;
     tran_ready <= 0;
+    rw_addr <= 0;
 
     wait(tran_finish);
     success <= ~cancel;
